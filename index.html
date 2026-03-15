@@ -1,8 +1,6 @@
 <script>
   // =========================
   // PASTE YOUR FMP API KEY HERE
-  // Example:
-  // const FMP_API_KEY = "abc123xyz";
   // =========================
   const FMP_API_KEY = "UJa8quhJAwCwMKqi46dDxxtI7FVYJ345";
 
@@ -23,7 +21,7 @@
   }
 
   function calcCAGR(startValue, endValue, years) {
-    if (!startValue || !endValue || years <= 0) return 0;
+    if (!startValue || !endValue || years <= 0 || startValue <= 0 || endValue <= 0) return 0;
     return Math.pow(endValue / startValue, 1 / years) - 1;
   }
 
@@ -64,11 +62,11 @@
   }
 
   function formatPct(value) {
-    return `${(value * 100).toFixed(2)}%`;
+    return `${(safeNumber(value, 0) * 100).toFixed(2)}%`;
   }
 
   function formatMoney(value) {
-    return "$" + Number(value).toLocaleString(undefined, {
+    return "$" + safeNumber(value, 0).toLocaleString(undefined, {
       maximumFractionDigits: 2
     });
   }
@@ -127,7 +125,6 @@
     const dr = discountRatePct / 100;
     const tg = terminalGrowthPct / 100;
     const growth = clamp(stock.earningsGrowthTarget || stock.revenueCagr || 0.07, 0.02, 0.20);
-
     const baseCashFlowPerShare = stock.eps || 0;
 
     if (baseCashFlowPerShare <= 0) {
@@ -170,10 +167,10 @@
     const riskPenalty = betaPenalty(stock.beta || 1);
 
     let baseReturn =
-      hist * 0.28 +
-      rev * 0.14 +
-      earn * 0.22 +
-      analystAnnualized * 0.14 +
+      hist * 0.30 +
+      rev * 0.16 +
+      earn * 0.20 +
+      analystAnnualized * 0.12 +
       valuation * 0.10 +
       quality * 0.06 +
       (stock.dcfAnnualizedUpside || 0) * 0.06 -
@@ -235,20 +232,23 @@
     if (!res.ok) {
       throw new Error(`HTTP error ${res.status}`);
     }
-    return await res.json();
+    const data = await res.json();
+    return data;
   }
 
-  function getFmpError(payload) {
-    if (!payload) return "Unknown API error";
-
+  function getApiMessage(payload) {
+    if (!payload) return null;
     if (typeof payload === "string") return payload;
+    return payload.Error || payload.error || payload.message || null;
+  }
 
-    if (payload.Error) return payload.Error;
-    if (payload.error) return payload.error;
-    if (payload.message) return payload.message;
-    if (payload.Note) return payload.Note;
-
-    return null;
+  async function safeOptionalFetch(url) {
+    try {
+      return await fetchJson(url);
+    } catch (err) {
+      console.warn("Optional endpoint failed:", err.message);
+      return null;
+    }
   }
 
   async function getStockData(ticker) {
@@ -259,37 +259,33 @@
     }
 
     if (!FMP_API_KEY || FMP_API_KEY === "PASTE_YOUR_FMP_KEY_HERE") {
-      throw new Error("Paste your Financial Modeling Prep API key into FMP_API_KEY near the top of the script.");
+      throw new Error("Paste your Financial Modeling Prep key into FMP_API_KEY near the top of the script.");
     }
 
-    // FMP endpoints
-    const historicalUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
-    const profileUrl = `https://financialmodelingprep.com/api/v3/profile/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
-    const priceTargetUrl = `https://financialmodelingprep.com/api/v4/price-target-consensus?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(FMP_API_KEY)}`;
-    const earningsSurpriseUrl = `https://financialmodelingprep.com/api/v3/earnings-surprises/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
+    const historicalUrl =
+      `https://financialmodelingprep.com/api/v3/historical-price-full/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
 
-    const [historicalJson, profileJson, priceTargetJson, earningsJson] = await Promise.all([
+    const profileUrl =
+      `https://financialmodelingprep.com/api/v3/profile/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
+
+    const [historicalJson, profileJson] = await Promise.all([
       fetchJson(historicalUrl),
-      fetchJson(profileUrl),
-      fetchJson(priceTargetUrl),
-      fetchJson(earningsSurpriseUrl)
+      fetchJson(profileUrl)
     ]);
 
-    const historicalErr = getFmpError(historicalJson);
-    const profileErr = getFmpError(profileJson);
-    const targetErr = getFmpError(priceTargetJson);
-    const earningsErr = getFmpError(earningsJson);
+    const historicalMsg = getApiMessage(historicalJson);
+    const profileMsg = getApiMessage(profileJson);
 
-    if (historicalErr && !historicalJson.historical) {
-      throw new Error(`Historical data error: ${historicalErr}`);
+    if (historicalMsg && !historicalJson.historical) {
+      throw new Error(`Historical data error: ${historicalMsg}`);
     }
 
-    if (profileErr && !Array.isArray(profileJson)) {
-      throw new Error(`Profile data error: ${profileErr}`);
+    if (profileMsg && !Array.isArray(profileJson)) {
+      throw new Error(`Profile data error: ${profileMsg}`);
     }
 
-    if (!historicalJson.historical || !Array.isArray(historicalJson.historical) || !historicalJson.historical.length) {
-      throw new Error(`Could not load historical prices for ${symbol}.`);
+    if (!historicalJson.historical || !Array.isArray(historicalJson.historical) || historicalJson.historical.length < 30) {
+      throw new Error(`Could not load enough historical price data for ${symbol}.`);
     }
 
     if (!Array.isArray(profileJson) || !profileJson.length) {
@@ -298,7 +294,6 @@
 
     const profile = profileJson[0];
 
-    // FMP historical comes newest first, so reverse for oldest -> newest
     const historical = historicalJson.historical
       .slice()
       .reverse()
@@ -308,55 +303,76 @@
       }))
       .filter(row => row.close > 0);
 
-    if (historical.length < 13) {
-      throw new Error(`Not enough historical data for ${symbol}.`);
+    if (historical.length < 30) {
+      throw new Error(`Not enough valid price history for ${symbol}.`);
     }
 
     const closes = historical.map(row => row.close);
-    const latestPrice = closes[closes.length - 1];
+    const latestPriceFromHistory = closes[closes.length - 1];
+    const currentPrice = safeNumber(profile.price, latestPriceFromHistory) || latestPriceFromHistory;
 
-    // Approximate 5 years using daily data
     const tradingDaysBack = Math.min(252 * 5, closes.length - 1);
     const startPrice = closes[closes.length - 1 - tradingDaysBack];
-    const historical5yCagr = calcCAGR(startPrice, latestPrice, tradingDaysBack / 252);
+    const historical5yCagr = calcCAGR(startPrice, latestPriceFromHistory, tradingDaysBack / 252);
 
-    const currentPrice = safeNumber(profile.price, latestPrice) || latestPrice;
     const beta = safeNumber(profile.beta, 1);
     const currentPE = safeNumber(profile.pe, 20);
     const eps = safeNumber(profile.eps, 0);
-    const marketCap = safeNumber(profile.mktCap, 0);
-    const dividendYield = safeNumber(profile.lastDiv, 0) && currentPrice > 0
-      ? safeNumber(profile.lastDiv, 0) / currentPrice
-      : 0;
+    const profitMargin = safeNumber(profile.profitMargin, 0.12);
+    const operatingMarginTTM = safeNumber(profile.operatingMargin, profitMargin);
+    const returnOnEquityTTM = safeNumber(profile.roe, 0.15);
 
-    // These fields may or may not exist depending on coverage/plan
-    const revenueGrowth = safeNumber(profile.growthRevenue ?? profile.revenueGrowth ?? 0.06, 0.06);
-    const earningsGrowth = safeNumber(profile.growthEPS ?? profile.earningsGrowth ?? 0.08, 0.08);
-    const profitMargin = safeNumber(profile.profitMargin ?? 0, 0);
-    const operatingMarginTTM = safeNumber(profile.operatingMargin ?? 0, 0);
-    const returnOnEquityTTM = safeNumber(profile.roe ?? 0, 0);
+    const dividendPerShare = safeNumber(profile.lastDiv, 0);
+    const dividendYield = currentPrice > 0 ? dividendPerShare / currentPrice : 0;
+
+    // Optional endpoints: if they fail, the model still runs.
+    const priceTargetUrl =
+      `https://financialmodelingprep.com/api/v4/price-target-consensus?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(FMP_API_KEY)}`;
+
+    const earningsSurpriseUrl =
+      `https://financialmodelingprep.com/api/v3/earnings-surprises/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
+
+    const [priceTargetJson, earningsJson] = await Promise.all([
+      safeOptionalFetch(priceTargetUrl),
+      safeOptionalFetch(earningsSurpriseUrl)
+    ]);
 
     let analystTargetPrice = currentPrice;
     if (Array.isArray(priceTargetJson) && priceTargetJson.length) {
-      const latestTarget = priceTargetJson[0];
+      const targetRow = priceTargetJson[0];
       analystTargetPrice = safeNumber(
-        latestTarget.targetConsensus ?? latestTarget.targetPrice ?? latestTarget.priceTarget,
+        targetRow.targetConsensus ?? targetRow.targetPrice ?? targetRow.priceTarget,
         currentPrice
       );
     }
 
     let earningsSurpriseTrend = 0;
     if (Array.isArray(earningsJson) && earningsJson.length) {
-      const latestSurprises = earningsJson.slice(0, 4).map(q => {
-        const actual = safeNumber(q.actualEarningResult ?? q.actualEPS, 0);
-        const estimate = safeNumber(q.estimatedEarning ?? q.estimatedEPS, 0);
+      const recent = earningsJson.slice(0, 4).map(row => {
+        const actual = safeNumber(row.actualEarningResult ?? row.actualEPS, 0);
+        const estimate = safeNumber(row.estimatedEarning ?? row.estimatedEPS, 0);
         if (!estimate) return 0;
         return (actual - estimate) / Math.abs(estimate);
       });
-      earningsSurpriseTrend = average(latestSurprises);
-    } else if (earningsErr) {
-      console.warn("Earnings surprise endpoint warning:", earningsErr);
+      earningsSurpriseTrend = average(recent);
     }
+
+    // Growth proxies with safe fallbacks so the model always runs
+    const revenueCagr = clamp(
+      safeNumber(profile.revenueGrowth, 0) ||
+      safeNumber(profile.growthRevenue, 0) ||
+      Math.max(historical5yCagr * 0.55, 0.04),
+      -0.05,
+      0.25
+    );
+
+    const earningsGrowthTarget = clamp(
+      safeNumber(profile.earningsGrowth, 0) ||
+      safeNumber(profile.growthEPS, 0) ||
+      Math.max(historical5yCagr * 0.75, 0.05),
+      -0.05,
+      0.30
+    );
 
     let fairPE = 20;
     if (currentPE > 0) {
@@ -376,8 +392,8 @@
       ticker: symbol,
       currentPrice,
       historical5yCagr,
-      revenueCagr: revenueGrowth,
-      earningsGrowthTarget: earningsGrowth,
+      revenueCagr,
+      earningsGrowthTarget,
       analystTargetPrice,
       currentPE,
       fairPE,
@@ -388,8 +404,7 @@
       operatingMarginTTM,
       returnOnEquityTTM,
       dividendYield,
-      earningsSurpriseTrend,
-      marketCap
+      earningsSurpriseTrend
     };
   }
 
@@ -423,15 +438,15 @@
       ["Revenue Growth Proxy", formatPct(stock.revenueCagr)],
       ["Earnings Growth Proxy", formatPct(stock.earningsGrowthTarget)],
       ["Analyst Target Price", formatMoney(stock.analystTargetPrice)],
-      ["Current P/E", stock.currentPE.toFixed(2)],
-      ["Fair P/E", stock.fairPE.toFixed(2)],
-      ["Beta", stock.beta.toFixed(2)],
-      ["EPS", stock.eps ? stock.eps.toFixed(2) : "N/A"],
+      ["Current P/E", safeNumber(stock.currentPE).toFixed(2)],
+      ["Fair P/E", safeNumber(stock.fairPE).toFixed(2)],
+      ["Beta", safeNumber(stock.beta).toFixed(2)],
+      ["EPS", stock.eps ? safeNumber(stock.eps).toFixed(2) : "N/A"],
       ["Profit Margin", formatPct(stock.profitMargin || 0)],
       ["Operating Margin", formatPct(stock.operatingMarginTTM || 0)],
       ["ROE", formatPct(stock.returnOnEquityTTM || 0)],
       ["Dividend Yield", formatPct(stock.dividendYield || 0)],
-      ["Quality Score", `${Math.round(stock.qualityScore * 100)} / 100`]
+      ["Quality Score", `${Math.round((stock.qualityScore || 0) * 100)} / 100`]
     ];
 
     document.getElementById("underlyingTable").innerHTML = rows.map(([k, v]) => `
@@ -657,6 +672,7 @@
       renderTags(stock, dcf);
     } catch (error) {
       showError(error.message || "Unable to analyze this stock.");
+      console.error(error);
     } finally {
       hideLoading();
       button.disabled = false;
