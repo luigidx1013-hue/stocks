@@ -8,1122 +8,730 @@
   <style>
     * { box-sizing: border-box; }
 
+    :root {
+      --bg: #0b1020;
+      --panel: #121937;
+      --panel-2: #182246;
+      --text: #e8ecf8;
+      --muted: #a7b0d1;
+      --line: rgba(255,255,255,0.08);
+      --accent: #69a7ff;
+      --accent-2: #8df0c8;
+      --good: #53d18d;
+      --bad: #ff7c7c;
+      --warn: #f1c96b;
+      --shadow: 0 12px 32px rgba(0,0,0,0.28);
+      --radius: 18px;
+    }
+
     body {
       margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(70, 110, 255, 0.16), transparent 30%),
+        radial-gradient(circle at top right, rgba(93, 232, 191, 0.12), transparent 25%),
+        var(--bg);
+      color: var(--text);
       font-family: Arial, Helvetica, sans-serif;
-      background: #f4f7fb;
-      color: #1f2937;
     }
 
     .container {
       max-width: 1280px;
       margin: 0 auto;
-      padding: 32px 20px 48px;
+      padding: 28px 18px 40px;
     }
 
-    .header { margin-bottom: 20px; }
-
-    .header h1 {
-      margin: 0 0 8px;
-      font-size: 2rem;
-    }
-
-    .header p {
-      margin: 0;
-      color: #4b5563;
-      line-height: 1.5;
-    }
-
-    .warning {
-      background: #fff7ed;
-      border: 1px solid #fdba74;
-      color: #9a3412;
-      padding: 14px 16px;
-      border-radius: 14px;
-      margin: 18px 0 24px;
-    }
-
-    .grid {
+    .hero {
       display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 24px;
-      align-items: start;
+      gap: 18px;
+      margin-bottom: 20px;
     }
 
-    .card {
-      background: white;
-      border-radius: 18px;
-      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
-      padding: 20px;
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.05;
     }
 
-    .card h2, .card h3 { margin-top: 0; }
-
-    label {
-      display: block;
-      font-weight: 600;
-      margin: 14px 0 6px;
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 920px;
     }
 
-    input, select {
-      width: 100%;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1px solid #cbd5e1;
-      font-size: 1rem;
-      background: white;
+    .searchbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px;
+      width: fit-content;
+      box-shadow: var(--shadow);
     }
 
-    button {
-      width: 100%;
-      margin-top: 16px;
-      padding: 12px 16px;
+    .searchbar input {
+      width: 260px;
       border: none;
-      border-radius: 12px;
-      background: #2563eb;
-      color: white;
+      outline: none;
+      background: transparent;
+      color: var(--text);
       font-size: 1rem;
+      padding: 10px 14px;
+    }
+
+    .searchbar button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #08111f;
       font-weight: 700;
       cursor: pointer;
     }
 
-    button:hover { background: #1d4ed8; }
-
-    button:disabled {
-      background: #93c5fd;
-      cursor: not-allowed;
+    .status {
+      min-height: 22px;
+      color: var(--muted);
+      margin: 10px 2px 0;
+      font-size: 0.95rem;
     }
 
-    .small-note {
-      margin-top: 12px;
-      color: #6b7280;
+    .grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(12, 1fr);
+      margin-top: 18px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.025));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px 8px;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 1.08rem;
+    }
+
+    .card-sub {
+      color: var(--muted);
       font-size: 0.92rem;
-      line-height: 1.45;
     }
 
-    .stack { display: grid; gap: 20px; }
+    .card-body {
+      padding: 14px 18px 18px;
+    }
 
-    .metrics {
+    .span-12 { grid-column: span 12; }
+    .span-8  { grid-column: span 8; }
+    .span-6  { grid-column: span 6; }
+    .span-4  { grid-column: span 4; }
+
+    .stats {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(4, 1fr);
       gap: 14px;
-      margin-bottom: 20px;
     }
 
-    .metric {
-      background: white;
+    .stat {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
       border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+      padding: 14px;
     }
 
-    .metric-label {
-      color: #64748b;
-      font-size: 0.9rem;
-      margin-bottom: 6px;
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-bottom: 8px;
     }
 
-    .metric-value {
-      font-size: 1.2rem;
+    .stat-value {
+      font-size: 1.4rem;
       font-weight: 700;
-      line-height: 1.2;
-      word-break: break-word;
     }
 
-    .two-col, .three-col {
-      display: grid;
-      gap: 20px;
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.84rem;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
     }
 
-    .two-col { grid-template-columns: 1fr 1fr; }
-    .three-col { grid-template-columns: 1fr 1fr 1fr; }
+    .good { color: var(--good); }
+    .bad { color: var(--bad); }
+    .warn { color: var(--warn); }
 
-    .chart-wrap {
-      height: 360px;
-      position: relative;
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 16px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.94rem;
+      min-width: 760px;
     }
 
     th, td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
       text-align: left;
-      padding: 10px 8px;
-      border-bottom: 1px solid #e5e7eb;
-      vertical-align: top;
+      font-size: 0.94rem;
     }
 
     th {
-      color: #475569;
-      font-weight: 700;
-      width: 52%;
-    }
-
-    .error, .loading, .success {
-      padding: 12px 14px;
-      border-radius: 12px;
-      display: none;
-      margin-bottom: 12px;
-    }
-
-    .error {
-      background: #fef2f2;
-      border: 1px solid #fca5a5;
-      color: #991b1b;
-    }
-
-    .loading {
-      background: #eff6ff;
-      border: 1px solid #93c5fd;
-      color: #1d4ed8;
-    }
-
-    .success {
-      background: #ecfdf5;
-      border: 1px solid #86efac;
-      color: #166534;
-    }
-
-    .subtle {
-      color: #64748b;
-      font-size: 0.93rem;
-      line-height: 1.45;
-    }
-
-    .pill-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .pill {
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: #eff6ff;
-      color: #1e40af;
-      font-size: 0.85rem;
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
       font-weight: 600;
+      position: sticky;
+      top: 0;
     }
 
-    .mono {
-      font-family: Menlo, Monaco, Consolas, monospace;
-      word-break: break-all;
+    .news-list {
+      display: grid;
+      gap: 12px;
     }
 
-    .footer-note {
-      margin-top: 16px;
-      font-size: 0.88rem;
-      color: #64748b;
-      line-height: 1.5;
+    .news-item {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      border-radius: 14px;
+      padding: 12px 14px;
     }
 
-    @media (max-width: 1050px) {
-      .grid, .metrics, .two-col, .three-col {
-        grid-template-columns: 1fr;
-      }
+    .news-item a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .news-meta {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-top: 8px;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .explain {
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 0.95rem;
+    }
+
+    canvas {
+      width: 100% !important;
+      max-height: 420px;
+    }
+
+    @media (max-width: 1100px) {
+      .span-8, .span-6, .span-4 { grid-column: span 12; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .mini-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: 1fr; }
+      .searchbar { width: 100%; border-radius: 20px; }
+      .searchbar input { width: 100%; }
+      .searchbar button { width: 100%; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>Stock Projection Analyzer</h1>
-      <p>
-        Enter a stock ticker to estimate future scenarios using historical returns,
-        valuation, growth proxies, fallback logic, and Monte Carlo simulation.
-      </p>
-    </div>
-
-    <div class="warning">
-      Educational use only. This is not financial advice.
-    </div>
-
-    <div class="grid">
-      <div class="stack">
-        <div class="card">
-          <h2>Inputs</h2>
-
-          <label for="ticker">Ticker</label>
-          <input id="ticker" type="text" value="AAPL" placeholder="AAPL" />
-
-          <label for="years">Projection Years</label>
-          <input id="years" type="number" min="1" max="30" value="5" />
-
-          <label for="simulations">Monte Carlo Simulations</label>
-          <select id="simulations">
-            <option value="250">250</option>
-            <option value="500" selected>500</option>
-            <option value="1000">1000</option>
-            <option value="2000">2000</option>
-          </select>
-
-          <label for="discountRate">Discount Rate (%)</label>
-          <input id="discountRate" type="number" min="4" max="20" step="0.1" value="9.0" />
-
-          <label for="terminalGrowth">Terminal Growth Rate (%)</label>
-          <input id="terminalGrowth" type="number" min="1" max="6" step="0.1" value="3.0" />
-
-          <button id="analyzeBtn">Analyze Stock</button>
-
-          <div class="small-note">
-            Paste your Finnhub key into the
-            <span class="mono">FINNHUB_API_KEY</span> variable below.
-          </div>
-        </div>
+    <section class="hero">
+      <div>
+        <h1>Stock Projection Analyzer</h1>
+        <p>
+          Enter a U.S. stock ticker to build a multi-year projection using historical price action,
+          SEC-reported earnings and revenue, recent headline sentiment, volatility, and a blended
+          technical plus valuation model.
+        </p>
       </div>
 
-      <div class="stack">
-        <div id="errorBox" class="error"></div>
-        <div id="loadingBox" class="loading">Loading stock data...</div>
-        <div id="successBox" class="success"></div>
+      <div class="searchbar">
+        <input id="tickerInput" type="text" placeholder="Enter ticker (AAPL, MSFT, NVDA)" />
+        <button id="analyzeBtn">Analyze Stock</button>
+      </div>
 
-        <div id="metrics" class="metrics"></div>
+      <div class="status" id="status">Ready.</div>
+    </section>
 
-        <div class="two-col">
-          <div class="card">
-            <h3>Projection</h3>
-            <div class="chart-wrap">
-              <canvas id="projectionChart"></canvas>
+    <section id="results" style="display:none;">
+      <div class="grid">
+        <div class="card span-12">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title" id="companyTitle">Company</h2>
+              <div class="card-sub" id="companySub">Ticker / Exchange</div>
             </div>
+            <div class="pill" id="modelBadge">Projection Model</div>
           </div>
-
-          <div class="card">
-            <h3>Monte Carlo Distribution</h3>
-            <div class="chart-wrap">
-              <canvas id="distributionChart"></canvas>
+          <div class="card-body">
+            <div class="stats">
+              <div class="stat">
+                <div class="stat-label">Latest Price</div>
+                <div class="stat-value" id="latestPrice">$0.00</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Annual Drift Estimate</div>
+                <div class="stat-value" id="annualDrift">0.00%</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Annual Volatility</div>
+                <div class="stat-value" id="annualVol">0.00%</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Forward P/E Used</div>
+                <div class="stat-value" id="forwardPE">—</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="three-col">
-          <div class="card">
-            <h3>Underlying Data</h3>
-            <table>
-              <tbody id="underlyingTable"></tbody>
-            </table>
+        <div class="card span-8">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Historical Price vs Projection</h3>
+              <div class="card-sub">Recent Stooq history plus 5-year projected path</div>
+            </div>
           </div>
-
-          <div class="card">
-            <h3>Return Components</h3>
-            <table>
-              <tbody id="componentsTable"></tbody>
-            </table>
-          </div>
-
-          <div class="card">
-            <h3>Valuation</h3>
-            <table>
-              <tbody id="valuationTable"></tbody>
-            </table>
+          <div class="card-body">
+            <canvas id="priceChart"></canvas>
           </div>
         </div>
 
-        <div class="card">
-          <h3>Signals</h3>
-          <div id="tagRow" class="pill-row"></div>
-          <p id="dataNotes" class="footer-note"></p>
+        <div class="card span-4">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Signal Snapshot</h3>
+              <div class="card-sub">Trend, returns, growth, sentiment</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="stats" style="grid-template-columns:1fr;">
+              <div class="stat">
+                <div class="stat-label">1-Year Return</div>
+                <div class="stat-value" id="oneYearReturn">—</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">3-Year CAGR</div>
+                <div class="stat-value" id="threeYearCagr">—</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">EPS Growth Used</div>
+                <div class="stat-value" id="epsGrowth">—</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">News Sentiment</div>
+                <div class="stat-value" id="newsSentiment">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card span-12">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Projection Table</h3>
+              <div class="card-sub">Bear, base, and bull cases</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Year</th>
+                    <th>Projected EPS</th>
+                    <th>Technical Price</th>
+                    <th>Valuation Price</th>
+                    <th>Blended Base</th>
+                    <th>Bear Case</th>
+                    <th>Bull Case</th>
+                  </tr>
+                </thead>
+                <tbody id="projectionTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card span-6">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Fundamentals from SEC</h3>
+              <div class="card-sub">Recent annual revenue, net income, and EPS</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="mini-grid">
+              <div>
+                <h4 style="margin-top:0;">Revenue</h4>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>FY</th><th>Value</th></tr>
+                    </thead>
+                    <tbody id="revenueTable"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div>
+                <h4 style="margin-top:0;">EPS</h4>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>FY</th><th>Value</th></tr>
+                    </thead>
+                    <tbody id="epsTable"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;">
+              <h4>Net Income</h4>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>FY</th><th>Value</th></tr>
+                  </thead>
+                  <tbody id="netIncomeTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card span-6">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Recent News</h3>
+              <div class="card-sub">Headlines used for simple sentiment scoring</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="news-list" id="newsList"></div>
+          </div>
+        </div>
+
+        <div class="card span-12">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">How This Model Works</h3>
+              <div class="card-sub">Important assumptions and limitations</div>
+            </div>
+          </div>
+          <div class="card-body explain">
+            This tool blends long-run price trend, recent performance, moving-average trend,
+            annualized volatility, simple headline sentiment, and SEC-reported EPS and revenue growth.
+            It combines a technical projection with a valuation estimate based on projected EPS
+            times a bounded forward P/E ratio. This is a screening and idea-generation tool, not a
+            DCF model or an investment recommendation.
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 
   <script>
-    // =========================
-    // PASTE YOUR FINNHUB API KEY HERE
-    // =========================
-    const FINNHUB_API_KEY = "d6rf38pr01qr194meqagd6rf38pr01qr194meqb0";
+    let priceChart = null;
 
-    let projectionChart = null;
-    let distributionChart = null;
+    const els = {
+      tickerInput: document.getElementById("tickerInput"),
+      analyzeBtn: document.getElementById("analyzeBtn"),
+      status: document.getElementById("status"),
+      results: document.getElementById("results"),
+      companyTitle: document.getElementById("companyTitle"),
+      companySub: document.getElementById("companySub"),
+      modelBadge: document.getElementById("modelBadge"),
+      latestPrice: document.getElementById("latestPrice"),
+      annualDrift: document.getElementById("annualDrift"),
+      annualVol: document.getElementById("annualVol"),
+      forwardPE: document.getElementById("forwardPE"),
+      oneYearReturn: document.getElementById("oneYearReturn"),
+      threeYearCagr: document.getElementById("threeYearCagr"),
+      epsGrowth: document.getElementById("epsGrowth"),
+      newsSentiment: document.getElementById("newsSentiment"),
+      projectionTableBody: document.getElementById("projectionTableBody"),
+      revenueTable: document.getElementById("revenueTable"),
+      epsTable: document.getElementById("epsTable"),
+      netIncomeTable: document.getElementById("netIncomeTable"),
+      newsList: document.getElementById("newsList")
+    };
 
-    function safeNumber(value, fallback = 0) {
-      const n = Number(value);
-      return Number.isFinite(n) ? n : fallback;
-    }
-
-    function average(arr) {
-      return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-    }
-
-    function clamp(value, min, max) {
-      return Math.max(min, Math.min(max, value));
-    }
-
-    function calcCAGR(startValue, endValue, years) {
-      if (!startValue || !endValue || years <= 0 || startValue <= 0 || endValue <= 0) return 0;
-      return Math.pow(endValue / startValue, 1 / years) - 1;
-    }
-
-    function annualizedReturnFromTarget(currentPrice, targetPrice, years = 1) {
-      if (!currentPrice || !targetPrice || currentPrice <= 0 || targetPrice <= 0 || years <= 0) return 0;
-      return Math.pow(targetPrice / currentPrice, 1 / years) - 1;
-    }
-
-    function valuationAdjustment(currentPE, fairPE, horizonYears) {
-      if (!currentPE || !fairPE || currentPE <= 0 || fairPE <= 0) return 0;
-      const totalReversion = fairPE / currentPE - 1;
-      return totalReversion / Math.max(horizonYears, 1);
-    }
-
-    function betaPenalty(beta) {
-      return Math.max(0, beta - 1) * 0.015;
-    }
-
-    function qualityAdjustment(qualityScore) {
-      return (qualityScore - 0.5) * 0.04;
-    }
-
-    function randn() {
-      let u = 0;
-      let v = 0;
-      while (u === 0) u = Math.random();
-      while (v === 0) v = Math.random();
-      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-    }
-
-    function percentile(sortedArr, p) {
-      if (!sortedArr.length) return 0;
-      const idx = (sortedArr.length - 1) * p;
-      const low = Math.floor(idx);
-      const high = Math.ceil(idx);
-      if (low === high) return sortedArr[low];
-      return sortedArr[low] + (sortedArr[high] - sortedArr[low]) * (idx - low);
-    }
-
-    function formatPct(value) {
-      return `${(safeNumber(value, 0) * 100).toFixed(2)}%`;
-    }
-
-    function formatMoney(value) {
-      return "$" + safeNumber(value, 0).toLocaleString(undefined, {
+    function fmtMoney(v) {
+      if (v === null || v === undefined || Number.isNaN(v)) return "—";
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
         maximumFractionDigits: 2
-      });
+      }).format(v);
     }
 
-    function histogram(values, bins = 14) {
-      if (!values.length) return { labels: [], counts: [] };
-
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-      const width = (max - min || 1) / bins;
-
-      const counts = Array(bins).fill(0);
-      const labels = [];
-
-      for (let i = 0; i < bins; i++) {
-        const start = min + i * width;
-        const end = start + width;
-        labels.push(`${formatMoney(start)}–${formatMoney(end)}`);
-      }
-
-      for (const value of values) {
-        let idx = Math.floor((value - min) / width);
-        if (idx >= bins) idx = bins - 1;
-        if (idx < 0) idx = 0;
-        counts[idx] += 1;
-      }
-
-      return { labels, counts };
+    function fmtPercent(v) {
+      if (v === null || v === undefined || Number.isNaN(v)) return "—";
+      return `${Number(v).toFixed(2)}%`;
     }
 
-    function buildProjectionSeries(currentPrice, years, annualReturns) {
-      const rows = [];
-      let bear = currentPrice;
-      let base = currentPrice;
-      let bull = currentPrice;
-
-      rows.push({ year: 0, bear: currentPrice, base: currentPrice, bull: currentPrice });
-
-      for (let i = 1; i <= years; i++) {
-        bear *= (1 + annualReturns.bearReturn);
-        base *= (1 + annualReturns.baseReturn);
-        bull *= (1 + annualReturns.bullReturn);
-
-        rows.push({
-          year: i,
-          bear: Number(bear.toFixed(2)),
-          base: Number(base.toFixed(2)),
-          bull: Number(bull.toFixed(2))
-        });
-      }
-
-      return rows;
+    function fmtBigNumber(v) {
+      if (v === null || v === undefined || Number.isNaN(v)) return "—";
+      const abs = Math.abs(v);
+      if (abs >= 1e12) return `${(v / 1e12).toFixed(2)}T`;
+      if (abs >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
+      if (abs >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
+      return Number(v).toLocaleString();
     }
 
-    function calculateDCF(stock, years, discountRatePct, terminalGrowthPct) {
-      const dr = discountRatePct / 100;
-      const tg = terminalGrowthPct / 100;
-      const growth = clamp(stock.earningsGrowthTarget || stock.revenueCagr || 0.07, 0.02, 0.20);
-      const baseCashFlowPerShare = stock.eps || 0;
-
-      if (baseCashFlowPerShare <= 0) {
-        return {
-          intrinsicValue: stock.currentPrice,
-          annualizedUpside: 0,
-          baseCashFlowPerShare: 0,
-          note: "Using current price fallback"
-        };
-      }
-
-      let pv = 0;
-      let cashFlow = baseCashFlowPerShare;
-
-      for (let year = 1; year <= years; year++) {
-        cashFlow *= (1 + growth);
-        pv += cashFlow / Math.pow(1 + dr, year);
-      }
-
-      const safeSpread = Math.max(dr - tg, 0.01);
-      const terminalCashFlow = cashFlow * (1 + tg);
-      const terminalValue = terminalCashFlow / safeSpread;
-      pv += terminalValue / Math.pow(1 + dr, years);
-
-      return {
-        intrinsicValue: pv,
-        annualizedUpside: annualizedReturnFromTarget(stock.currentPrice, pv, years),
-        baseCashFlowPerShare,
-        note: "Using EPS proxy"
-      };
+    function sentimentLabel(score) {
+      if (score > 0.5) return { text: "Positive", cls: "good" };
+      if (score < -0.5) return { text: "Negative", cls: "bad" };
+      return { text: "Neutral", cls: "warn" };
     }
 
-    function projectionAlgorithm(stock, years) {
-      const hist = stock.historical5yCagr || 0;
-      const rev = stock.revenueCagr || 0;
-      const earn = stock.earningsGrowthTarget || 0;
-      const analystAnnualized = annualizedReturnFromTarget(stock.currentPrice, stock.analystTargetPrice, 1);
-      const valuation = valuationAdjustment(stock.currentPE, stock.fairPE, years);
-      const quality = qualityAdjustment(stock.qualityScore || 0.5);
-      const riskPenalty = betaPenalty(stock.beta || 1);
-
-      let baseReturn =
-        hist * 0.30 +
-        rev * 0.16 +
-        earn * 0.20 +
-        analystAnnualized * 0.12 +
-        valuation * 0.10 +
-        quality * 0.06 +
-        (stock.dcfAnnualizedUpside || 0) * 0.06 -
-        riskPenalty;
-
-      baseReturn = clamp(baseReturn, -0.25, 0.32);
-
-      const estimatedVolatility = clamp(0.16 + ((stock.beta || 1) - 1) * 0.10, 0.12, 0.42);
-      const uncertainty = clamp(0.07 + estimatedVolatility * 0.40, 0.09, 0.20);
-
-      return {
-        baseReturn,
-        bearReturn: clamp(baseReturn - uncertainty, -0.45, 0.20),
-        bullReturn: clamp(baseReturn + uncertainty, -0.05, 0.50),
-        estimatedVolatility,
-        components: {
-          historical: hist,
-          revenue: rev,
-          earnings: earn,
-          analystAnnualized,
-          valuation,
-          quality,
-          dcfAnnualizedUpside: stock.dcfAnnualizedUpside || 0,
-          riskPenalty
-        }
-      };
+    function setStatus(text) {
+      els.status.textContent = text;
     }
 
-    function simulateMonteCarlo(currentPrice, years, expectedReturn, volatility, count) {
-      const endingPrices = [];
-
-      for (let i = 0; i < count; i++) {
-        let price = currentPrice;
-
-        for (let y = 0; y < years; y++) {
-          const annualReturn = expectedReturn + randn() * volatility;
-          price *= (1 + annualReturn);
-          if (price < 0.01) price = 0.01;
-        }
-
-        endingPrices.push(price);
-      }
-
-      endingPrices.sort((a, b) => a - b);
-
-      return {
-        endingPrices,
-        p10: percentile(endingPrices, 0.10),
-        p25: percentile(endingPrices, 0.25),
-        p50: percentile(endingPrices, 0.50),
-        p75: percentile(endingPrices, 0.75),
-        p90: percentile(endingPrices, 0.90),
-        chancePositive: endingPrices.filter(v => v > currentPrice).length / endingPrices.length
-      };
-    }
-
-    function buildUrl(base, params = {}) {
-      const url = new URL(base);
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "") {
-          url.searchParams.set(key, value);
-        }
-      });
-      return url.toString();
-    }
-
-    function getMetricValue(obj, keys, fallback = 0) {
-      for (const key of keys) {
-        if (obj && obj[key] !== undefined && obj[key] !== null) {
-          const n = Number(obj[key]);
-          if (Number.isFinite(n)) return n;
-        }
-      }
-      return fallback;
-    }
-
-    async function fetchJson(url) {
-      console.log("Fetching:", url.replace(FINNHUB_API_KEY, "HIDDEN_KEY"));
-
-      const res = await fetch(url, {
-        method: "GET",
-        cache: "no-store"
-      });
-
-      const text = await res.text();
-      let data;
-
-      try {
-        data = text ? JSON.parse(text) : null;
-      } catch {
-        data = text;
-      }
-
-      if (!res.ok) {
-        const detail =
-          typeof data === "string"
-            ? data
-            : (data?.error || data?.message || JSON.stringify(data));
-
-        throw new Error(`HTTP ${res.status} from ${url.split("?")[0]}${detail ? ` — ${detail}` : ""}`);
-      }
-
-      return data;
-    }
-
-    function unixNow() {
-      return Math.floor(Date.now() / 1000);
-    }
-
-    function yearsAgoUnix(years) {
-      const d = new Date();
-      d.setFullYear(d.getFullYear() - years);
-      return Math.floor(d.getTime() / 1000);
-    }
-
-    async function getStockData(ticker) {
-      const symbol = ticker.toUpperCase().trim();
-
-      if (!symbol) {
-        throw new Error("Enter a ticker symbol.");
-      }
-
-      if (!FINNHUB_API_KEY || FINNHUB_API_KEY === "PASTE_YOUR_FINNHUB_KEY_HERE") {
-        throw new Error("Paste your Finnhub key into FINNHUB_API_KEY.");
-      }
-
-      const quoteUrl = buildUrl("https://finnhub.io/api/v1/quote", {
-        symbol,
-        token: FINNHUB_API_KEY
-      });
-
-      const profileUrl = buildUrl("https://finnhub.io/api/v1/stock/profile2", {
-        symbol,
-        token: FINNHUB_API_KEY
-      });
-
-      const metricUrl = buildUrl("https://finnhub.io/api/v1/stock/metric", {
-        symbol,
-        metric: "all",
-        token: FINNHUB_API_KEY
-      });
-
-      const candlesUrl = buildUrl("https://finnhub.io/api/v1/stock/candle", {
-        symbol,
-        resolution: "D",
-        from: yearsAgoUnix(5),
-        to: unixNow(),
-        token: FINNHUB_API_KEY
-      });
-
-      const [quoteJson, profileJson, metricJson, candleJson] = await Promise.all([
-        fetchJson(quoteUrl),
-        fetchJson(profileUrl),
-        fetchJson(metricUrl),
-        fetchJson(candlesUrl)
-      ]);
-
-      if (!quoteJson || safeNumber(quoteJson.c, 0) <= 0) {
-        throw new Error(`Could not load a valid quote for ${symbol}.`);
-      }
-
-      if (!profileJson || (!profileJson.ticker && !profileJson.name)) {
-        throw new Error(`Could not load company profile for ${symbol}.`);
-      }
-
-      if (!candleJson || candleJson.s !== "ok" || !Array.isArray(candleJson.c) || candleJson.c.length < 30) {
-        throw new Error(`Could not load enough historical price data for ${symbol}.`);
-      }
-
-      const basicMetric = metricJson?.metric || {};
-
-      const historical = candleJson.c
-        .map((close, i) => ({
-          date: candleJson.t?.[i] ? new Date(candleJson.t[i] * 1000).toISOString().slice(0, 10) : "",
-          close: safeNumber(close, 0)
-        }))
-        .filter(row => row.close > 0);
-
-      if (historical.length < 30) {
-        throw new Error(`Not enough valid price history for ${symbol}.`);
-      }
-
-      const closes = historical.map(row => row.close);
-      const latestPriceFromHistory = closes[closes.length - 1];
-      const currentPrice = safeNumber(quoteJson.c, latestPriceFromHistory) || latestPriceFromHistory;
-
-      const tradingDaysBack = Math.min(252 * 5, closes.length - 1);
-      const startPrice = closes[closes.length - 1 - tradingDaysBack];
-      const historical5yCagr = calcCAGR(startPrice, latestPriceFromHistory, tradingDaysBack / 252);
-
-      const beta = getMetricValue(basicMetric, ["beta"], 1);
-
-      const currentPE = getMetricValue(
-        basicMetric,
-        ["peTTM", "peBasicExclExtraTTM", "peInclExtraTTM", "currentEv/freeCashFlowTTM"],
-        20
-      );
-
-      const eps = getMetricValue(
-        basicMetric,
-        ["epsTTM", "epsBasicExclExtraItemsTTM", "epsExclExtraItemsAnnual"],
-        0
-      );
-
-      const profitMargin = clamp(
-        getMetricValue(
-          basicMetric,
-          ["netMarginTTM", "netMarginAnnual"],
-          0.12
-        ) / 100,
-        -1,
-        1
-      );
-
-      const operatingMarginTTM = clamp(
-        getMetricValue(
-          basicMetric,
-          ["operatingMarginTTM", "operatingMarginAnnual"],
-          profitMargin * 100
-        ) / 100,
-        -1,
-        1
-      );
-
-      const returnOnEquityTTM = clamp(
-        getMetricValue(
-          basicMetric,
-          ["roeTTM", "roeRfy", "roeAverage5Y"],
-          15
-        ) / 100,
-        -1,
-        2
-      );
-
-      const dividendYield = clamp(
-        getMetricValue(
-          basicMetric,
-          ["dividendYieldIndicatedAnnual", "dividendYield5Y", "currentDividendYieldTTM"],
-          0
-        ) / 100,
-        0,
-        0.20
-      );
-
-      const revenueCagr = clamp(
-        getMetricValue(
-          basicMetric,
-          [
-            "revenueGrowthTTMYoy",
-            "revenueGrowthQuarterlyYoy",
-            "revenueGrowth5Y",
-            "salesPerShare5Y"
-          ],
-          Math.max(historical5yCagr * 0.55, 0.04) * 100
-        ) / 100,
-        -0.05,
-        0.25
-      );
-
-      const earningsGrowthTarget = clamp(
-        getMetricValue(
-          basicMetric,
-          [
-            "epsGrowthTTMYoy",
-            "epsGrowthQuarterlyYoy",
-            "epsGrowth5Y"
-          ],
-          Math.max(historical5yCagr * 0.75, 0.05) * 100
-        ) / 100,
-        -0.05,
-        0.30
-      );
-
-      let fairPE = 20;
-      if (currentPE > 0) {
-        fairPE = clamp(currentPE * 0.85, 16, 32);
-      }
-
-      const qualityScore = clamp(
-        0.5 +
-        profitMargin * 0.7 +
-        operatingMarginTTM * 0.25 +
-        returnOnEquityTTM * 0.35,
-        0,
-        1
-      );
-
-      return {
-        ticker: profileJson.ticker || symbol,
-        companyName: profileJson.name || symbol,
-        currentPrice,
-        historical5yCagr,
-        revenueCagr,
-        earningsGrowthTarget,
-        analystTargetPrice: currentPrice,
-        currentPE,
-        fairPE,
-        beta,
-        qualityScore,
-        eps,
-        profitMargin,
-        operatingMarginTTM,
-        returnOnEquityTTM,
-        dividendYield,
-        earningsSurpriseTrend: 0,
-        usedTargetFallback: true,
-        usedEarningsFallback: true,
-        quote: quoteJson,
-        profile: profileJson
-      };
-    }
-
-    function renderMetrics(stock, annualReturns, series, monteCarlo, dcf, years) {
-      const last = series[series.length - 1];
-
-      const metrics = [
-        ["Current Price", formatMoney(stock.currentPrice)],
-        ["Base Annual Return", formatPct(annualReturns.baseReturn)],
-        ["Bull Annual Return", formatPct(annualReturns.bullReturn)],
-        ["Estimated Volatility", formatPct(annualReturns.estimatedVolatility)],
-        [`Base ${years}-Year Value`, formatMoney(last.base)],
-        ["DCF Intrinsic Value", formatMoney(dcf.intrinsicValue)],
-        ["Monte Carlo Median", formatMoney(monteCarlo.p50)],
-        ["Chance Ending Higher", formatPct(monteCarlo.chancePositive)]
-      ];
-
-      document.getElementById("metrics").innerHTML = metrics.map(([label, value]) => `
-        <div class="metric">
-          <div class="metric-label">${label}</div>
-          <div class="metric-value">${value}</div>
-        </div>
+    function buildProjectionRows(projections) {
+      els.projectionTableBody.innerHTML = projections.map((p) => `
+        <tr>
+          <td>${p.year}</td>
+          <td>${p.projectedEPS !== null ? "$" + p.projectedEPS.toFixed(2) : "—"}</td>
+          <td>${fmtMoney(p.technicalPrice)}</td>
+          <td>${p.valuationPrice !== null ? fmtMoney(p.valuationPrice) : "—"}</td>
+          <td><strong>${fmtMoney(p.blendedPrice)}</strong></td>
+          <td class="bad">${fmtMoney(p.bearPrice)}</td>
+          <td class="good">${fmtMoney(p.bullPrice)}</td>
+        </tr>
       `).join("");
     }
 
-    function renderUnderlyingTable(stock) {
-      const rows = [
-        ["Ticker", stock.ticker],
-        ["Company", stock.companyName || stock.ticker],
-        ["Current Price", formatMoney(stock.currentPrice)],
-        ["Historical 5Y CAGR", formatPct(stock.historical5yCagr)],
-        ["Revenue Growth Proxy", formatPct(stock.revenueCagr)],
-        ["Earnings Growth Proxy", formatPct(stock.earningsGrowthTarget)],
-        ["Analyst Target Price", formatMoney(stock.analystTargetPrice)],
-        ["Current P/E", safeNumber(stock.currentPE).toFixed(2)],
-        ["Fair P/E", safeNumber(stock.fairPE).toFixed(2)],
-        ["Beta", safeNumber(stock.beta).toFixed(2)],
-        ["EPS", stock.eps ? safeNumber(stock.eps).toFixed(2) : "N/A"],
-        ["Profit Margin", formatPct(stock.profitMargin || 0)],
-        ["Operating Margin", formatPct(stock.operatingMarginTTM || 0)],
-        ["ROE", formatPct(stock.returnOnEquityTTM || 0)],
-        ["Dividend Yield", formatPct(stock.dividendYield || 0)],
-        ["Quality Score", `${Math.round((stock.qualityScore || 0) * 100)} / 100`]
-      ];
-
-      document.getElementById("underlyingTable").innerHTML = rows.map(([k, v]) => `
-        <tr><th>${k}</th><td>${v}</td></tr>
-      `).join("");
+    function buildFactRows(targetEl, rows, formatter = (x) => x) {
+      targetEl.innerHTML = rows.length
+        ? rows.slice(-5).reverse().map((r) => `
+            <tr>
+              <td>${r.fy || new Date(r.end).getFullYear()}</td>
+              <td>${formatter(r.val)}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="2">No recent data</td></tr>`;
     }
 
-    function renderComponentsTable(components) {
-      const rows = [
-        ["Historical input", formatPct(components.historical)],
-        ["Revenue input", formatPct(components.revenue)],
-        ["Earnings input", formatPct(components.earnings)],
-        ["Analyst annualized", formatPct(components.analystAnnualized)],
-        ["Valuation adjustment", formatPct(components.valuation)],
-        ["Quality adjustment", formatPct(components.quality)],
-        ["DCF annualized upside", formatPct(components.dcfAnnualizedUpside)],
-        ["Risk penalty", "-" + formatPct(components.riskPenalty)]
-      ];
+    function buildNews(news) {
+      if (!news.length) {
+        els.newsList.innerHTML = `<div class="news-item">No recent headlines found.</div>`;
+        return;
+      }
 
-      document.getElementById("componentsTable").innerHTML = rows.map(([k, v]) => `
-        <tr><th>${k}</th><td>${v}</td></tr>
-      `).join("");
+      els.newsList.innerHTML = news.slice(0, 8).map((item) => {
+        const label = sentimentLabel(item.sentimentScore);
+        return `
+          <div class="news-item">
+            <a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a>
+            <div class="news-meta">
+              ${new Date(item.pubDate).toLocaleString()} ·
+              <span class="${label.cls}">${label.text}</span> ·
+              Score ${item.sentimentScore}
+            </div>
+          </div>
+        `;
+      }).join("");
     }
 
-    function renderValuationTable(stock, monteCarlo, dcf) {
-      const rows = [
-        ["DCF Method", dcf.note],
-        ["DCF Base Cash Flow / Share", dcf.baseCashFlowPerShare ? dcf.baseCashFlowPerShare.toFixed(2) : "N/A"],
-        ["DCF Intrinsic Value", formatMoney(dcf.intrinsicValue)],
-        ["DCF Annualized Upside", formatPct(dcf.annualizedUpside)],
-        ["Monte Carlo P10", formatMoney(monteCarlo.p10)],
-        ["Monte Carlo P25", formatMoney(monteCarlo.p25)],
-        ["Monte Carlo Median", formatMoney(monteCarlo.p50)],
-        ["Monte Carlo P75", formatMoney(monteCarlo.p75)],
-        ["Monte Carlo P90", formatMoney(monteCarlo.p90)],
-        ["Chance Ending Above Today", formatPct(monteCarlo.chancePositive)],
-        ["Recent Earnings Surprise Trend", formatPct(stock.earningsSurpriseTrend || 0)]
-      ];
+    function buildChart(prices, projections) {
+      const ctx = document.getElementById("priceChart").getContext("2d");
 
-      document.getElementById("valuationTable").innerHTML = rows.map(([k, v]) => `
-        <tr><th>${k}</th><td>${v}</td></tr>
-      `).join("");
-    }
+      const historical = prices.slice(-240);
+      const histLabels = historical.map((p) => p.date);
+      const histValues = historical.map((p) => p.close);
 
-    function renderProjectionChart(series) {
-      const canvas = document.getElementById("projectionChart");
-      const ctx = canvas.getContext("2d");
+      const futureLabels = projections.map((p) => `Year ${p.year}`);
+      const baseValues = projections.map((p) => p.blendedPrice);
+      const bearValues = projections.map((p) => p.bearPrice);
+      const bullValues = projections.map((p) => p.bullPrice);
 
-      if (projectionChart) projectionChart.destroy();
+      const labels = [...histLabels, ...futureLabels];
 
-      projectionChart = new Chart(ctx, {
+      const histSeries = [...histValues, ...new Array(futureLabels.length).fill(null)];
+
+      const baseSeries = new Array(histValues.length - 1).fill(null)
+        .concat([histValues[histValues.length - 1]])
+        .concat(baseValues);
+
+      const bearSeries = new Array(histValues.length - 1).fill(null)
+        .concat([histValues[histValues.length - 1]])
+        .concat(bearValues);
+
+      const bullSeries = new Array(histValues.length - 1).fill(null)
+        .concat([histValues[histValues.length - 1]])
+        .concat(bullValues);
+
+      if (priceChart) {
+        priceChart.destroy();
+      }
+
+      priceChart = new Chart(ctx, {
         type: "line",
         data: {
-          labels: series.map(row => `Year ${row.year}`),
+          labels,
           datasets: [
             {
-              label: "Bear",
-              data: series.map(row => row.bear),
-              borderColor: "#dc2626",
-              backgroundColor: "rgba(220,38,38,0.12)",
+              label: "Historical Close",
+              data: histSeries,
               borderWidth: 2,
-              tension: 0.25,
-              pointRadius: 2,
-              fill: false
+              tension: 0.25
             },
             {
-              label: "Base",
-              data: series.map(row => row.base),
-              borderColor: "#2563eb",
-              backgroundColor: "rgba(37,99,235,0.12)",
+              label: "Base Projection",
+              data: baseSeries,
+              borderDash: [6, 6],
               borderWidth: 2,
-              tension: 0.25,
-              pointRadius: 2,
-              fill: false
+              tension: 0.25
             },
             {
-              label: "Bull",
-              data: series.map(row => row.bull),
-              borderColor: "#16a34a",
-              backgroundColor: "rgba(22,163,74,0.12)",
-              borderWidth: 2,
-              tension: 0.25,
-              pointRadius: 2,
-              fill: false
+              label: "Bear Case",
+              data: bearSeries,
+              borderDash: [3, 5],
+              borderWidth: 1.5,
+              tension: 0.25
+            },
+            {
+              label: "Bull Case",
+              data: bullSeries,
+              borderDash: [3, 5],
+              borderWidth: 1.5,
+              tension: 0.25
             }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: {
+            mode: "index",
+            intersect: false
+          },
           plugins: {
+            legend: {
+              labels: {
+                color: "#e8ecf8"
+              }
+            },
             tooltip: {
               callbacks: {
                 label: function(context) {
-                  return `${context.dataset.label}: ${formatMoney(context.parsed.y)}`;
+                  if (context.raw === null) return "";
+                  return `${context.dataset.label}: ${fmtMoney(context.raw)}`;
                 }
               }
             }
           },
           scales: {
+            x: {
+              ticks: { color: "#a7b0d1", maxTicksLimit: 14 },
+              grid: { color: "rgba(255,255,255,0.05)" }
+            },
             y: {
               ticks: {
-                callback: function(value) {
-                  return "$" + Number(value).toLocaleString();
-                }
-              }
+                color: "#a7b0d1",
+                callback: (value) => fmtMoney(value)
+              },
+              grid: { color: "rgba(255,255,255,0.05)" }
             }
           }
         }
       });
     }
 
-    function renderDistributionChart(endingPrices) {
-      const canvas = document.getElementById("distributionChart");
-      const ctx = canvas.getContext("2d");
+    async function analyzeTicker() {
+      const ticker = els.tickerInput.value.trim().toUpperCase();
 
-      if (distributionChart) distributionChart.destroy();
-
-      const hist = histogram(endingPrices, 14);
-
-      distributionChart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: hist.labels,
-          datasets: [{
-            label: "Simulation Count",
-            data: hist.counts,
-            backgroundColor: "rgba(37,99,235,0.55)",
-            borderColor: "#1d4ed8",
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            x: { ticks: { display: false } },
-            y: { beginAtZero: true }
-          }
-        }
-      });
-    }
-
-    function renderTags(stock, dcf) {
-      const tags = [];
-
-      if (stock.beta > 1.2) tags.push("High beta");
-      if (stock.qualityScore > 0.75) tags.push("High quality profile");
-      if (stock.currentPE > stock.fairPE) tags.push("Above fair P/E estimate");
-      if (stock.currentPE < stock.fairPE) tags.push("Below fair P/E estimate");
-      if (dcf.intrinsicValue > stock.currentPrice) tags.push("DCF upside");
-      if (stock.earningsSurpriseTrend > 0) tags.push("Recent earnings beats");
-      if (stock.usedTargetFallback) tags.push("Target fallback used");
-      if (stock.usedEarningsFallback) tags.push("Earnings fallback used");
-
-      document.getElementById("tagRow").innerHTML = tags.map(tag => `
-        <div class="pill">${tag}</div>
-      `).join("");
-    }
-
-    function renderDataNotes(stock) {
-      const notes = [];
-      if (stock.usedTargetFallback) {
-        notes.push("Analyst target data is using a fallback because Finnhub price targets are not included in the free setup used here.");
-      }
-      if (stock.usedEarningsFallback) {
-        notes.push("Earnings surprise data was unavailable, so earnings trend was set to neutral.");
-      }
-      if (!notes.length) {
-        notes.push("All primary and optional inputs loaded successfully.");
+      if (!ticker) {
+        setStatus("Please enter a ticker.");
+        return;
       }
 
-      document.getElementById("dataNotes").textContent = notes.join(" ");
-    }
-
-    function showError(message) {
-      const box = document.getElementById("errorBox");
-      box.style.display = "block";
-      box.textContent = message;
-    }
-
-    function clearError() {
-      const box = document.getElementById("errorBox");
-      box.style.display = "none";
-      box.textContent = "";
-    }
-
-    function showLoading() {
-      document.getElementById("loadingBox").style.display = "block";
-    }
-
-    function hideLoading() {
-      document.getElementById("loadingBox").style.display = "none";
-    }
-
-    function showSuccess(message) {
-      const box = document.getElementById("successBox");
-      box.style.display = "block";
-      box.textContent = message;
-    }
-
-    function clearSuccess() {
-      const box = document.getElementById("successBox");
-      box.style.display = "none";
-      box.textContent = "";
-    }
-
-    async function analyzeStock() {
-      clearError();
-      clearSuccess();
-      showLoading();
-
-      const button = document.getElementById("analyzeBtn");
-      button.disabled = true;
+      setStatus(`Analyzing ${ticker}...`);
+      els.analyzeBtn.disabled = true;
+      els.results.style.display = "none";
 
       try {
-        const ticker = document.getElementById("ticker").value.trim();
-        const years = safeNumber(document.getElementById("years").value, 5);
-        const simulations = safeNumber(document.getElementById("simulations").value, 500);
-        const discountRate = safeNumber(document.getElementById("discountRate").value, 9);
-        const terminalGrowth = safeNumber(document.getElementById("terminalGrowth").value, 3);
+        const res = await fetch(`/api/analyze/${encodeURIComponent(ticker)}`);
+        const data = await res.json();
 
-        if (!ticker) throw new Error("Enter a ticker symbol.");
+        if (!res.ok) {
+          throw new Error(data.error || "Analysis failed.");
+        }
 
-        const stock = await getStockData(ticker);
-        const dcf = calculateDCF(stock, years, discountRate, terminalGrowth);
-        stock.dcfAnnualizedUpside = dcf.annualizedUpside;
+        const { companyName, exchange, fundamentals, news, prices, model } = data;
+        const sentiment = sentimentLabel(model.avgNewsSentiment);
 
-        const annualReturns = projectionAlgorithm(stock, years);
-        const series = buildProjectionSeries(stock.currentPrice, years, annualReturns);
-        const monteCarlo = simulateMonteCarlo(
-          stock.currentPrice,
-          years,
-          annualReturns.baseReturn,
-          annualReturns.estimatedVolatility,
-          simulations
-        );
+        els.companyTitle.textContent = `${companyName} (${ticker})`;
+        els.companySub.textContent = `${exchange || "Exchange unavailable"} · SEC + Stooq + Google News`;
+        els.modelBadge.textContent = `News sentiment: ${sentiment.text}`;
+        els.modelBadge.className = `pill ${sentiment.cls}`;
 
-        renderMetrics(stock, annualReturns, series, monteCarlo, dcf, years);
-        renderUnderlyingTable(stock);
-        renderComponentsTable(annualReturns.components);
-        renderValuationTable(stock, monteCarlo, dcf);
-        renderProjectionChart(series);
-        renderDistributionChart(monteCarlo.endingPrices);
-        renderTags(stock, dcf);
-        renderDataNotes(stock);
+        els.latestPrice.textContent = fmtMoney(model.latestPrice);
+        els.annualDrift.textContent = fmtPercent(model.annualDrift);
+        els.annualVol.textContent = fmtPercent(model.annualVol);
+        els.forwardPE.textContent = model.forwardPE ? model.forwardPE.toFixed(2) : "—";
+        els.oneYearReturn.textContent = fmtPercent(model.oneYearReturn);
+        els.threeYearCagr.textContent = fmtPercent(model.threeYearCagr);
+        els.epsGrowth.textContent = fmtPercent(model.epsGrowth);
+        els.newsSentiment.textContent = `${model.avgNewsSentiment.toFixed(2)} (${sentiment.text})`;
 
-        showSuccess(`Loaded ${stock.ticker} successfully.`);
-      } catch (error) {
-        showError(error?.message || "Unable to analyze this stock.");
-        console.error(error);
+        buildProjectionRows(model.projections);
+        buildFactRows(els.revenueTable, fundamentals.revenue, fmtBigNumber);
+        buildFactRows(els.epsTable, fundamentals.eps, (v) => `$${Number(v).toFixed(2)}`);
+        buildFactRows(els.netIncomeTable, fundamentals.netIncome, fmtBigNumber);
+        buildNews(news);
+        buildChart(prices, model.projections);
+
+        els.results.style.display = "block";
+        setStatus(`Finished analyzing ${ticker}.`);
+      } catch (err) {
+        console.error(err);
+        setStatus(err.message || "Something went wrong.");
       } finally {
-        hideLoading();
-        button.disabled = false;
+        els.analyzeBtn.disabled = false;
       }
     }
 
-    document.getElementById("analyzeBtn").addEventListener("click", analyzeStock);
-
-    window.addEventListener("error", function(event) {
-      const message = event?.message || "A script error occurred.";
-      showError(`Page error: ${message}`);
+    els.analyzeBtn.addEventListener("click", analyzeTicker);
+    els.tickerInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") analyzeTicker();
     });
 
-    analyzeStock();
+    els.tickerInput.value = "AAPL";
   </script>
 </body>
 </html>
