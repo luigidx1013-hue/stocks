@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -178,8 +178,7 @@
         <button id="analyzeBtn">Analyze Stock</button>
 
         <div class="small-note">
-          Demo tickers included: <strong>AAPL, MSFT, NVDA, VOO</strong><br>
-          Replace <code>getStockData()</code> with a real API or backend call for live data.
+          Uses Alpha Vantage data. Enter a ticker like <strong>AAPL, MSFT, NVDA, TSLA, VOO</strong>.
         </div>
       </div>
 
@@ -213,61 +212,22 @@
   </div>
 
   <script>
-    const MOCK_DATA = {
-      AAPL: {
-        currentPrice: 215,
-        historical5yCagr: 0.17,
-        revenueCagr: 0.08,
-        earningsGrowthTarget: 0.11,
-        analystTargetPrice: 240,
-        currentPE: 31,
-        fairPE: 28,
-        beta: 1.2,
-        newsSentiment: 0.22,
-        qualityScore: 0.86,
-      },
-      MSFT: {
-        currentPrice: 425,
-        historical5yCagr: 0.19,
-        revenueCagr: 0.12,
-        earningsGrowthTarget: 0.14,
-        analystTargetPrice: 470,
-        currentPE: 36,
-        fairPE: 32,
-        beta: 0.95,
-        newsSentiment: 0.19,
-        qualityScore: 0.91,
-      },
-      NVDA: {
-        currentPrice: 905,
-        historical5yCagr: 0.52,
-        revenueCagr: 0.39,
-        earningsGrowthTarget: 0.28,
-        analystTargetPrice: 980,
-        currentPE: 58,
-        fairPE: 44,
-        beta: 1.7,
-        newsSentiment: 0.15,
-        qualityScore: 0.88,
-      },
-      VOO: {
-        currentPrice: 540,
-        historical5yCagr: 0.13,
-        revenueCagr: 0.08,
-        earningsGrowthTarget: 0.09,
-        analystTargetPrice: 575,
-        currentPE: 25,
-        fairPE: 22,
-        beta: 1.0,
-        newsSentiment: 0.05,
-        qualityScore: 0.93,
-      }
-    };
+    const API_KEY = "YOUR_ALPHA_VANTAGE_KEY";
 
     let chart;
 
+    function average(arr) {
+      if (!arr.length) return 0;
+      return arr.reduce((a, b) => a + b, 0) / arr.length;
+    }
+
     function clamp(value, min, max) {
       return Math.max(min, Math.min(max, value));
+    }
+
+    function calcCAGR(startValue, endValue, years) {
+      if (!startValue || !endValue || years <= 0) return 0;
+      return Math.pow(endValue / startValue, 1 / years) - 1;
     }
 
     function annualizedReturnFromTarget(currentPrice, targetPrice, years = 1) {
@@ -350,6 +310,7 @@
         bear *= 1 + annualReturns.bearReturn;
         base *= 1 + annualReturns.baseReturn;
         bull *= 1 + annualReturns.bullReturn;
+
         rows.push({
           year: i,
           bear: Number(bear.toFixed(2)),
@@ -362,107 +323,189 @@
     }
 
     async function getStockData(ticker) {
-      const upper = ticker.toUpperCase().trim();
+      const symbol = ticker.toUpperCase().trim();
 
-      if (MOCK_DATA[upper]) {
-        return { ticker: upper, ...MOCK_DATA[upper] };
+      const monthlyUrl =
+        `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=${symbol}&apikey=${API_KEY}`;
+
+      const overviewUrl =
+        `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${API_KEY}`;
+
+      const newsUrl =
+        `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${symbol}&apikey=${API_KEY}`;
+
+      const [monthlyRes, overviewRes, newsRes] = await Promise.all([
+        fetch(monthlyUrl),
+        fetch(overviewUrl),
+        fetch(newsUrl)
+      ]);
+
+      const monthlyJson = await monthlyRes.json();
+      const overviewJson = await overviewRes.json();
+      const newsJson = await newsRes.json();
+
+      if (monthlyJson["Information"]) {
+        throw new Error("API limit reached. Wait and try again later.");
       }
 
-      // Replace this block with a real fetch call, for example:
-      // const response = await fetch(`/api/stock?ticker=${upper}`);
-      // if (!response.ok) throw new Error('Failed to fetch stock data');
-      // return await response.json();
+      if (monthlyJson["Error Message"] || !monthlyJson["Monthly Adjusted Time Series"]) {
+        throw new Error(`Could not load price history for ${symbol}.`);
+      }
 
-      throw new Error(`No demo data found for ${upper}. Try AAPL, MSFT, NVDA, or VOO, or connect a real market data API.`);
+      const seriesObj = monthlyJson["Monthly Adjusted Time Series"];
+      const dates = Object.keys(seriesObj).sort();
+      const closes = dates.map(date => Number(seriesObj[date]["5. adjusted close"]));
+
+      if (closes.length < 13) {
+        throw new Error(`Not enough historical data for ${symbol}.`);
+      }
+
+      const latestPrice = closes[closes.length - 1];
+      const monthsBack = Math.min(60, closes.length - 1);
+      const startPrice = closes[closes.length - 1 - monthsBack];
+      const historical5yCagr = calcCAGR(startPrice, latestPrice, monthsBack / 12);
+
+      const quarterlyEarningsGrowthYOY = Number(overviewJson.QuarterlyEarningsGrowthYOY || 0);
+      const quarterlyRevenueGrowthYOY = Number(overviewJson.QuarterlyRevenueGrowthYOY || 0);
+      const analystTargetPrice = Number(overviewJson.AnalystTargetPrice || latestPrice);
+      const currentPE = Number(overviewJson.PERatio || 20);
+      const beta = Number(overviewJson.Beta || 1);
+
+      let fairPE = 20;
+      if (currentPE > 0) {
+        fairPE = clamp(currentPE * 0.85, 18, 30);
+      }
+
+      const profitMargin = Number(overviewJson.ProfitMargin || 0);
+      const returnOnEquityTTM = Number(overviewJson.ReturnOnEquityTTM || 0);
+      const qualityScore = clamp(
+        0.5 + (profitMargin * 0.8) + (returnOnEquityTTM * 0.4),
+        0,
+        1
+      );
+
+      let newsSentiment = 0;
+      if (newsJson.feed && Array.isArray(newsJson.feed) && newsJson.feed.length) {
+        const tickerScores = [];
+
+        for (const article of newsJson.feed.slice(0, 20)) {
+          if (article.ticker_sentiment && Array.isArray(article.ticker_sentiment)) {
+            const match = article.ticker_sentiment.find(
+              x => x.ticker && x.ticker.toUpperCase() === symbol
+            );
+            if (match && match.ticker_sentiment_score !== undefined) {
+              tickerScores.push(Number(match.ticker_sentiment_score));
+            }
+          }
+        }
+
+        if (tickerScores.length) {
+          newsSentiment = average(tickerScores);
+        }
+      }
+
+      return {
+        ticker: symbol,
+        currentPrice: latestPrice,
+        historical5yCagr: historical5yCagr,
+        revenueCagr: quarterlyRevenueGrowthYOY || 0.06,
+        earningsGrowthTarget: quarterlyEarningsGrowthYOY || 0.08,
+        analystTargetPrice: analystTargetPrice || latestPrice,
+        currentPE: currentPE || 20,
+        fairPE: fairPE,
+        beta: beta || 1,
+        newsSentiment: clamp(newsSentiment, -1, 1),
+        qualityScore: qualityScore
+      };
     }
 
     function formatPct(value) {
-      return (value * 100).toFixed(2) + '%';
+      return (value * 100).toFixed(2) + "%";
     }
 
     function formatMoney(value) {
-      return '$' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
+      return "$" + Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
     }
 
     function renderMetrics(stock, annualReturns, series, years) {
       const last = series[series.length - 1];
       const metrics = [
-        ['Current Price', formatMoney(stock.currentPrice)],
-        ['Base Annual Return', formatPct(annualReturns.baseReturn)],
-        ['Bear Annual Return', formatPct(annualReturns.bearReturn)],
-        ['Bull Annual Return', formatPct(annualReturns.bullReturn)],
+        ["Current Price", formatMoney(stock.currentPrice)],
+        ["Base Annual Return", formatPct(annualReturns.baseReturn)],
+        ["Bear Annual Return", formatPct(annualReturns.bearReturn)],
+        ["Bull Annual Return", formatPct(annualReturns.bullReturn)],
         [`Base ${years}-Year Value`, formatMoney(last.base)],
         [`Bull ${years}-Year Value`, formatMoney(last.bull)]
       ];
 
-      document.getElementById('metrics').innerHTML = metrics.map(([label, value]) => `
+      document.getElementById("metrics").innerHTML = metrics.map(([label, value]) => `
         <div class="metric">
           <div class="metric-label">${label}</div>
           <div class="metric-value">${value}</div>
         </div>
-      `).join('');
+      `).join("");
     }
 
     function renderUnderlyingTable(stock) {
       const rows = [
-        ['Ticker', stock.ticker],
-        ['Current Price', formatMoney(stock.currentPrice)],
-        ['Historical 5Y CAGR', formatPct(stock.historical5yCagr)],
-        ['Revenue CAGR', formatPct(stock.revenueCagr)],
-        ['Earnings Growth Target', formatPct(stock.earningsGrowthTarget)],
-        ['Analyst Target Price', formatMoney(stock.analystTargetPrice)],
-        ['Current P/E', stock.currentPE.toFixed(2)],
-        ['Fair P/E', stock.fairPE.toFixed(2)],
-        ['Beta', stock.beta.toFixed(2)],
-        ['News Sentiment', formatPct(stock.newsSentiment)],
-        ['Quality Score', Math.round(stock.qualityScore * 100) + ' / 100']
+        ["Ticker", stock.ticker],
+        ["Current Price", formatMoney(stock.currentPrice)],
+        ["Historical 5Y CAGR", formatPct(stock.historical5yCagr)],
+        ["Revenue CAGR", formatPct(stock.revenueCagr)],
+        ["Earnings Growth Target", formatPct(stock.earningsGrowthTarget)],
+        ["Analyst Target Price", formatMoney(stock.analystTargetPrice)],
+        ["Current P/E", stock.currentPE.toFixed(2)],
+        ["Fair P/E", stock.fairPE.toFixed(2)],
+        ["Beta", stock.beta.toFixed(2)],
+        ["News Sentiment", formatPct(stock.newsSentiment)],
+        ["Quality Score", Math.round(stock.qualityScore * 100) + " / 100"]
       ];
 
-      document.getElementById('underlyingTable').innerHTML = rows.map(([k, v]) => `
+      document.getElementById("underlyingTable").innerHTML = rows.map(([k, v]) => `
         <tr><th>${k}</th><td>${v}</td></tr>
-      `).join('');
+      `).join("");
     }
 
     function renderComponentsTable(components) {
       const rows = [
-        ['Historical input', formatPct(components.historical)],
-        ['Revenue input', formatPct(components.revenue)],
-        ['Earnings input', formatPct(components.earnings)],
-        ['Analyst annualized', formatPct(components.analystAnnualized)],
-        ['Valuation adjustment', formatPct(components.valuation)],
-        ['Sentiment adjustment', formatPct(components.sentiment)],
-        ['Quality adjustment', formatPct(components.quality)],
-        ['Risk penalty', '-' + formatPct(components.riskPenalty)]
+        ["Historical input", formatPct(components.historical)],
+        ["Revenue input", formatPct(components.revenue)],
+        ["Earnings input", formatPct(components.earnings)],
+        ["Analyst annualized", formatPct(components.analystAnnualized)],
+        ["Valuation adjustment", formatPct(components.valuation)],
+        ["Sentiment adjustment", formatPct(components.sentiment)],
+        ["Quality adjustment", formatPct(components.quality)],
+        ["Risk penalty", "-" + formatPct(components.riskPenalty)]
       ];
 
-      document.getElementById('componentsTable').innerHTML = rows.map(([k, v]) => `
+      document.getElementById("componentsTable").innerHTML = rows.map(([k, v]) => `
         <tr><th>${k}</th><td>${v}</td></tr>
-      `).join('');
+      `).join("");
     }
 
     function renderChart(series) {
-      const ctx = document.getElementById('projectionChart').getContext('2d');
+      const ctx = document.getElementById("projectionChart").getContext("2d");
       if (chart) chart.destroy();
 
       chart = new Chart(ctx, {
-        type: 'line',
+        type: "line",
         data: {
-          labels: series.map(row => 'Year ' + row.year),
+          labels: series.map(row => "Year " + row.year),
           datasets: [
             {
-              label: 'Bear',
+              label: "Bear",
               data: series.map(row => row.bear),
               borderWidth: 2,
               tension: 0.25
             },
             {
-              label: 'Base',
+              label: "Base",
               data: series.map(row => row.base),
               borderWidth: 2,
               tension: 0.25
             },
             {
-              label: 'Bull',
+              label: "Bull",
               data: series.map(row => row.bull),
               borderWidth: 2,
               tension: 0.25
@@ -476,7 +519,7 @@
             tooltip: {
               callbacks: {
                 label: function(context) {
-                  return context.dataset.label + ': ' + formatMoney(context.parsed.y);
+                  return context.dataset.label + ": " + formatMoney(context.parsed.y);
                 }
               }
             }
@@ -485,7 +528,7 @@
             y: {
               ticks: {
                 callback: function(value) {
-                  return '$' + Number(value).toLocaleString();
+                  return "$" + Number(value).toLocaleString();
                 }
               }
             }
@@ -495,22 +538,28 @@
     }
 
     function showError(message) {
-      const box = document.getElementById('errorBox');
-      box.style.display = 'block';
+      const box = document.getElementById("errorBox");
+      box.style.display = "block";
       box.textContent = message;
     }
 
     function clearError() {
-      const box = document.getElementById('errorBox');
-      box.style.display = 'none';
-      box.textContent = '';
+      const box = document.getElementById("errorBox");
+      box.style.display = "none";
+      box.textContent = "";
     }
 
     async function analyzeStock() {
       clearError();
+
       try {
-        const ticker = document.getElementById('ticker').value;
-        const years = Number(document.getElementById('years').value);
+        const ticker = document.getElementById("ticker").value;
+        const years = Number(document.getElementById("years").value);
+
+        if (!API_KEY || API_KEY === "R3ADRK0I0LXX9JLD") {
+          throw new Error("Add your Alpha Vantage API key near the top of the script first.");
+        }
+
         const stock = await getStockData(ticker);
         const annualReturns = projectionAlgorithm(stock, years);
         const series = buildProjectionSeries(stock.currentPrice, years, annualReturns);
@@ -520,12 +569,11 @@
         renderComponentsTable(annualReturns.components);
         renderChart(series);
       } catch (error) {
-        showError(error.message || 'Unable to analyze this stock.');
+        showError(error.message || "Unable to analyze this stock.");
       }
     }
 
-    document.getElementById('analyzeBtn').addEventListener('click', analyzeStock);
-    analyzeStock();
+    document.getElementById("analyzeBtn").addEventListener("click", analyzeStock);
   </script>
 </body>
 </html>
