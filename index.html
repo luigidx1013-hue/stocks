@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Projection Analyzer</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f7fb;
+      color: #1f2937;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    .header {
+      margin-bottom: 24px;
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+    }
+    .header p {
+      margin: 0;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+    .warning {
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      color: #9a3412;
+      padding: 14px 16px;
+      border-radius: 14px;
+      margin: 18px 0 24px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+      padding: 20px;
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin: 14px 0 6px;
+    }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      font-size: 1rem;
+    }
+    button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      background: #2563eb;
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+    .small-note {
+      margin-top: 12px;
+      color: #6b7280;
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .metric {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+    }
+    .metric-label {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .metric-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .tables {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .table-block h3 {
+      margin-top: 0;
+      font-size: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    th {
+      color: #475569;
+      font-weight: 700;
+    }
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    canvas {
+      margin-top: 12px;
+      background: white;
+      border-radius: 16px;
+      padding: 10px;
+    }
+    @media (max-width: 900px) {
+      .grid, .tables, .metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Stock Projection Analyzer</h1>
+      <p>
+        Enter a stock ticker and projection horizon to estimate bear, base, and bull-case outcomes
+        using a weighted model based on historical performance, earnings growth, analyst targets,
+        valuation, news sentiment, and volatility.
+      </p>
+    </div>
+
+    <div class="warning">
+      This tool is for educational use only. It is not financial advice and should not be the sole basis for any investment decision.
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Inputs</h2>
+        <label for="ticker">Ticker</label>
+        <input id="ticker" type="text" value="AAPL" placeholder="AAPL" />
+
+        <label for="years">Projection Years</label>
+        <input id="years" type="number" min="1" max="30" value="5" />
+
+        <button id="analyzeBtn">Analyze Stock</button>
+
+        <div class="small-note">
+          Demo tickers included: <strong>AAPL, MSFT, NVDA, VOO</strong><br>
+          Replace <code>getStockData()</code> with a real API or backend call for live data.
+        </div>
+      </div>
+
+      <div>
+        <div id="errorBox" class="error"></div>
+
+        <div class="metrics" id="metrics"></div>
+
+        <div class="card">
+          <h2>Projection Paths</h2>
+          <canvas id="projectionChart" height="120"></canvas>
+        </div>
+
+        <div class="tables">
+          <div class="card table-block">
+            <h3>Underlying Data</h3>
+            <table>
+              <tbody id="underlyingTable"></tbody>
+            </table>
+          </div>
+
+          <div class="card table-block">
+            <h3>Annual Return Components</h3>
+            <table>
+              <tbody id="componentsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MOCK_DATA = {
+      AAPL: {
+        currentPrice: 215,
+        historical5yCagr: 0.17,
+        revenueCagr: 0.08,
+        earningsGrowthTarget: 0.11,
+        analystTargetPrice: 240,
+        currentPE: 31,
+        fairPE: 28,
+        beta: 1.2,
+        newsSentiment: 0.22,
+        qualityScore: 0.86,
+      },
+      MSFT: {
+        currentPrice: 425,
+        historical5yCagr: 0.19,
+        revenueCagr: 0.12,
+        earningsGrowthTarget: 0.14,
+        analystTargetPrice: 470,
+        currentPE: 36,
+        fairPE: 32,
+        beta: 0.95,
+        newsSentiment: 0.19,
+        qualityScore: 0.91,
+      },
+      NVDA: {
+        currentPrice: 905,
+        historical5yCagr: 0.52,
+        revenueCagr: 0.39,
+        earningsGrowthTarget: 0.28,
+        analystTargetPrice: 980,
+        currentPE: 58,
+        fairPE: 44,
+        beta: 1.7,
+        newsSentiment: 0.15,
+        qualityScore: 0.88,
+      },
+      VOO: {
+        currentPrice: 540,
+        historical5yCagr: 0.13,
+        revenueCagr: 0.08,
+        earningsGrowthTarget: 0.09,
+        analystTargetPrice: 575,
+        currentPE: 25,
+        fairPE: 22,
+        beta: 1.0,
+        newsSentiment: 0.05,
+        qualityScore: 0.93,
+      }
+    };
+
+    let chart;
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function annualizedReturnFromTarget(currentPrice, targetPrice, years = 1) {
+      if (!currentPrice || !targetPrice || currentPrice <= 0 || targetPrice <= 0) return 0;
+      return Math.pow(targetPrice / currentPrice, 1 / years) - 1;
+    }
+
+    function valuationAdjustment(currentPE, fairPE, horizonYears) {
+      if (!currentPE || !fairPE || currentPE <= 0 || fairPE <= 0) return 0;
+      const totalReversion = fairPE / currentPE - 1;
+      return totalReversion / Math.max(horizonYears, 1);
+    }
+
+    function betaPenalty(beta) {
+      if (!beta) return 0;
+      return Math.max(0, beta - 1) * 0.015;
+    }
+
+    function sentimentAdjustment(sentiment) {
+      return clamp(sentiment, -1, 1) * 0.03;
+    }
+
+    function qualityAdjustment(qualityScore) {
+      if (qualityScore == null) return 0;
+      return (qualityScore - 0.5) * 0.04;
+    }
+
+    function projectionAlgorithm(stock, years) {
+      const hist = stock.historical5yCagr || 0;
+      const rev = stock.revenueCagr || 0;
+      const earn = stock.earningsGrowthTarget || 0;
+      const analystAnnualized = annualizedReturnFromTarget(stock.currentPrice, stock.analystTargetPrice, 1);
+      const valuation = valuationAdjustment(stock.currentPE, stock.fairPE, years);
+      const sentiment = sentimentAdjustment(stock.newsSentiment || 0);
+      const quality = qualityAdjustment(stock.qualityScore);
+      const riskPenalty = betaPenalty(stock.beta || 1);
+
+      let baseReturn =
+        hist * 0.28 +
+        rev * 0.12 +
+        earn * 0.28 +
+        analystAnnualized * 0.14 +
+        valuation * 0.10 +
+        sentiment * 0.04 +
+        quality * 0.04 -
+        riskPenalty;
+
+      baseReturn = clamp(baseReturn, -0.25, 0.30);
+
+      const uncertainty = clamp(0.08 + (stock.beta || 1) * 0.03, 0.08, 0.18);
+      const bearReturn = clamp(baseReturn - uncertainty, -0.40, 0.20);
+      const bullReturn = clamp(baseReturn + uncertainty, -0.10, 0.45);
+
+      return {
+        baseReturn,
+        bearReturn,
+        bullReturn,
+        components: {
+          historical: hist,
+          revenue: rev,
+          earnings: earn,
+          analystAnnualized,
+          valuation,
+          sentiment,
+          quality,
+          riskPenalty
+        }
+      };
+    }
+
+    function buildProjectionSeries(currentPrice, years, annualReturns) {
+      const rows = [];
+      let bear = currentPrice;
+      let base = currentPrice;
+      let bull = currentPrice;
+
+      rows.push({ year: 0, bear, base, bull });
+
+      for (let i = 1; i <= years; i++) {
+        bear *= 1 + annualReturns.bearReturn;
+        base *= 1 + annualReturns.baseReturn;
+        bull *= 1 + annualReturns.bullReturn;
+        rows.push({
+          year: i,
+          bear: Number(bear.toFixed(2)),
+          base: Number(base.toFixed(2)),
+          bull: Number(bull.toFixed(2))
+        });
+      }
+
+      return rows;
+    }
+
+    async function getStockData(ticker) {
+      const upper = ticker.toUpperCase().trim();
+
+      if (MOCK_DATA[upper]) {
+        return { ticker: upper, ...MOCK_DATA[upper] };
+      }
+
+      // Replace this block with a real fetch call, for example:
+      // const response = await fetch(`/api/stock?ticker=${upper}`);
+      // if (!response.ok) throw new Error('Failed to fetch stock data');
+      // return await response.json();
+
+      throw new Error(`No demo data found for ${upper}. Try AAPL, MSFT, NVDA, or VOO, or connect a real market data API.`);
+    }
+
+    function formatPct(value) {
+      return (value * 100).toFixed(2) + '%';
+    }
+
+    function formatMoney(value) {
+      return '$' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
+
+    function renderMetrics(stock, annualReturns, series, years) {
+      const last = series[series.length - 1];
+      const metrics = [
+        ['Current Price', formatMoney(stock.currentPrice)],
+        ['Base Annual Return', formatPct(annualReturns.baseReturn)],
+        ['Bear Annual Return', formatPct(annualReturns.bearReturn)],
+        ['Bull Annual Return', formatPct(annualReturns.bullReturn)],
+        [`Base ${years}-Year Value`, formatMoney(last.base)],
+        [`Bull ${years}-Year Value`, formatMoney(last.bull)]
+      ];
+
+      document.getElementById('metrics').innerHTML = metrics.map(([label, value]) => `
+        <div class="metric">
+          <div class="metric-label">${label}</div>
+          <div class="metric-value">${value}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderUnderlyingTable(stock) {
+      const rows = [
+        ['Ticker', stock.ticker],
+        ['Current Price', formatMoney(stock.currentPrice)],
+        ['Historical 5Y CAGR', formatPct(stock.historical5yCagr)],
+        ['Revenue CAGR', formatPct(stock.revenueCagr)],
+        ['Earnings Growth Target', formatPct(stock.earningsGrowthTarget)],
+        ['Analyst Target Price', formatMoney(stock.analystTargetPrice)],
+        ['Current P/E', stock.currentPE.toFixed(2)],
+        ['Fair P/E', stock.fairPE.toFixed(2)],
+        ['Beta', stock.beta.toFixed(2)],
+        ['News Sentiment', formatPct(stock.newsSentiment)],
+        ['Quality Score', Math.round(stock.qualityScore * 100) + ' / 100']
+      ];
+
+      document.getElementById('underlyingTable').innerHTML = rows.map(([k, v]) => `
+        <tr><th>${k}</th><td>${v}</td></tr>
+      `).join('');
+    }
+
+    function renderComponentsTable(components) {
+      const rows = [
+        ['Historical input', formatPct(components.historical)],
+        ['Revenue input', formatPct(components.revenue)],
+        ['Earnings input', formatPct(components.earnings)],
+        ['Analyst annualized', formatPct(components.analystAnnualized)],
+        ['Valuation adjustment', formatPct(components.valuation)],
+        ['Sentiment adjustment', formatPct(components.sentiment)],
+        ['Quality adjustment', formatPct(components.quality)],
+        ['Risk penalty', '-' + formatPct(components.riskPenalty)]
+      ];
+
+      document.getElementById('componentsTable').innerHTML = rows.map(([k, v]) => `
+        <tr><th>${k}</th><td>${v}</td></tr>
+      `).join('');
+    }
+
+    function renderChart(series) {
+      const ctx = document.getElementById('projectionChart').getContext('2d');
+      if (chart) chart.destroy();
+
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: series.map(row => 'Year ' + row.year),
+          datasets: [
+            {
+              label: 'Bear',
+              data: series.map(row => row.bear),
+              borderWidth: 2,
+              tension: 0.25
+            },
+            {
+              label: 'Base',
+              data: series.map(row => row.base),
+              borderWidth: 2,
+              tension: 0.25
+            },
+            {
+              label: 'Bull',
+              data: series.map(row => row.bull),
+              borderWidth: 2,
+              tension: 0.25
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': ' + formatMoney(context.parsed.y);
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              ticks: {
+                callback: function(value) {
+                  return '$' + Number(value).toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function showError(message) {
+      const box = document.getElementById('errorBox');
+      box.style.display = 'block';
+      box.textContent = message;
+    }
+
+    function clearError() {
+      const box = document.getElementById('errorBox');
+      box.style.display = 'none';
+      box.textContent = '';
+    }
+
+    async function analyzeStock() {
+      clearError();
+      try {
+        const ticker = document.getElementById('ticker').value;
+        const years = Number(document.getElementById('years').value);
+        const stock = await getStockData(ticker);
+        const annualReturns = projectionAlgorithm(stock, years);
+        const series = buildProjectionSeries(stock.currentPrice, years, annualReturns);
+
+        renderMetrics(stock, annualReturns, series, years);
+        renderUnderlyingTable(stock);
+        renderComponentsTable(annualReturns.components);
+        renderChart(series);
+      } catch (error) {
+        showError(error.message || 'Unable to analyze this stock.');
+      }
+    }
+
+    document.getElementById('analyzeBtn').addEventListener('click', analyzeStock);
+    analyzeStock();
+  </script>
+</body>
+</html>
