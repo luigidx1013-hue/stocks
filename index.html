@@ -3,24 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Advanced Stock Projection Analyzer</title>
+  <title>Stock Projection Analyzer</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
       background: #f4f7fb;
       color: #1f2937;
     }
+
     .container {
       max-width: 1280px;
       margin: 0 auto;
       padding: 32px 20px 48px;
     }
-    .header { margin-bottom: 22px; }
-    .header h1 { margin: 0 0 8px; font-size: 2.1rem; }
-    .header p { margin: 0; color: #4b5563; line-height: 1.5; }
+
+    .header {
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+    }
+
+    .header p {
+      margin: 0;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+
     .warning {
       background: #fff7ed;
       border: 1px solid #fdba74;
@@ -29,24 +44,31 @@
       border-radius: 14px;
       margin: 18px 0 24px;
     }
+
     .grid {
       display: grid;
       grid-template-columns: 340px 1fr;
       gap: 24px;
       align-items: start;
     }
+
     .card {
       background: white;
       border-radius: 18px;
       box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
       padding: 20px;
     }
-    .card h2, .card h3 { margin-top: 0; }
+
+    .card h2, .card h3 {
+      margin-top: 0;
+    }
+
     label {
       display: block;
       font-weight: 600;
       margin: 14px 0 6px;
     }
+
     input, select {
       width: 100%;
       padding: 12px 14px;
@@ -55,6 +77,7 @@
       font-size: 1rem;
       background: white;
     }
+
     button {
       width: 100%;
       margin-top: 16px;
@@ -67,83 +90,122 @@
       font-weight: 700;
       cursor: pointer;
     }
-    button:hover { background: #1d4ed8; }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    button:disabled {
+      background: #93c5fd;
+      cursor: not-allowed;
+    }
+
     .small-note {
       margin-top: 12px;
       color: #6b7280;
       font-size: 0.92rem;
       line-height: 1.45;
     }
+
     .metrics {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 14px;
       margin-bottom: 20px;
     }
+
     .metric {
       background: white;
       border-radius: 16px;
       padding: 16px;
       box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
     }
+
     .metric-label {
       color: #64748b;
       font-size: 0.9rem;
       margin-bottom: 6px;
     }
+
     .metric-value {
       font-size: 1.2rem;
       font-weight: 700;
       line-height: 1.2;
+      word-break: break-word;
     }
-    .stack { display: grid; gap: 20px; }
+
+    .stack {
+      display: grid;
+      gap: 20px;
+    }
+
     .two-col {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 20px;
     }
+
     .three-col {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 20px;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.94rem;
     }
+
     th, td {
       text-align: left;
       padding: 10px 8px;
       border-bottom: 1px solid #e5e7eb;
       vertical-align: top;
     }
-    th { color: #475569; font-weight: 700; width: 52%; }
+
+    th {
+      color: #475569;
+      font-weight: 700;
+      width: 52%;
+    }
+
     .error {
       background: #fef2f2;
       border: 1px solid #fca5a5;
       color: #991b1b;
       padding: 12px 14px;
       border-radius: 12px;
-      margin-bottom: 14px;
       display: none;
     }
-    .success {
+
+    .loading {
       background: #eff6ff;
       border: 1px solid #93c5fd;
       color: #1d4ed8;
       padding: 12px 14px;
       border-radius: 12px;
-      margin-bottom: 14px;
+      display: none;
     }
+
     .subtle {
       color: #64748b;
       font-size: 0.93rem;
       line-height: 1.45;
     }
-    .chart-wrap { height: 360px; }
-    .chart-wrap canvas { width: 100% !important; height: 100% !important; }
-    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+    .chart-wrap {
+      height: 360px;
+      position: relative;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
     .pill {
       padding: 6px 10px;
       border-radius: 999px;
@@ -152,34 +214,38 @@
       font-size: 0.85rem;
       font-weight: 600;
     }
+
     .mono {
       font-family: Menlo, Monaco, Consolas, monospace;
       word-break: break-all;
     }
+
     @media (max-width: 1050px) {
-      .grid, .metrics, .two-col, .three-col { grid-template-columns: 1fr; }
+      .grid, .metrics, .two-col, .three-col {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>Advanced Stock Projection Analyzer</h1>
+      <h1>Stock Projection Analyzer</h1>
       <p>
-        This version adds a multi-factor model, a simple DCF-style valuation lens, and Monte Carlo scenario simulation.
-        It uses historical performance, earnings and revenue growth, analyst target price, valuation, news sentiment,
-        beta, margins, and return on equity to estimate a range of outcomes.
+        Enter a ticker to estimate projected stock outcomes using historical prices,
+        growth proxies, analyst targets, valuation reversion, sentiment, and a Monte Carlo simulation.
       </p>
     </div>
 
     <div class="warning">
-      This is an educational model, not financial advice. Market forecasts are uncertain, and any valuation or projection can be wrong.
+      Educational use only. This is not financial advice, and all forecasts are uncertain.
     </div>
 
     <div class="grid">
       <div class="stack">
         <div class="card">
           <h2>Inputs</h2>
+
           <label for="ticker">Ticker</label>
           <input id="ticker" type="text" value="AAPL" placeholder="AAPL" />
 
@@ -194,42 +260,46 @@
             <option value="2000">2000</option>
           </select>
 
-          <label for="discountRate">Discount Rate</label>
+          <label for="discountRate">Discount Rate (%)</label>
           <input id="discountRate" type="number" min="4" max="20" step="0.1" value="9.0" />
 
-          <label for="terminalGrowth">Terminal Growth Rate</label>
+          <label for="terminalGrowth">Terminal Growth Rate (%)</label>
           <input id="terminalGrowth" type="number" min="1" max="6" step="0.1" value="3.0" />
 
           <button id="analyzeBtn">Analyze Stock</button>
 
           <div class="small-note">
-            This file is set up to use Alpha Vantage. Keep your API key near the top of the script in the <span class="mono">API_KEY</span> constant.
-            For testing, start with large tickers like <strong>AAPL, MSFT, NVDA, AMZN, META, GOOGL, VOO</strong>.
+            Paste your Alpha Vantage key in the <span class="mono">API_KEY</span> constant near the top of the script.
+            Run this from <span class="mono">localhost</span> for best results.
           </div>
         </div>
 
         <div class="card">
-          <h3>Where your API key goes</h3>
-          <div class="subtle">Replace the placeholder below with your real key:</div>
-          <div class="success mono" id="apiKeyHint">const API_KEY = "YOUR_ALPHA_VANTAGE_KEY";</div>
-          <div class="small-note">Do not publish this file publicly with your real key inside it.</div>
+          <h3>API key location</h3>
+          <div class="subtle">Edit this line in the script:</div>
+          <div class="mono">const API_KEY = "R3ADRK0I0LXX9JLD";</div>
         </div>
       </div>
 
       <div class="stack">
         <div id="errorBox" class="error"></div>
+        <div id="loadingBox" class="loading">Loading stock data and running simulation...</div>
 
         <div class="metrics" id="metrics"></div>
 
         <div class="two-col">
           <div class="card">
             <h2>Projection Paths</h2>
-            <div class="chart-wrap"><canvas id="projectionChart"></canvas></div>
+            <div class="chart-wrap">
+              <canvas id="projectionChart"></canvas>
+            </div>
           </div>
 
           <div class="card">
             <h2>Monte Carlo Distribution</h2>
-            <div class="chart-wrap"><canvas id="distributionChart"></canvas></div>
+            <div class="chart-wrap">
+              <canvas id="distributionChart"></canvas>
+            </div>
           </div>
         </div>
 
@@ -238,10 +308,12 @@
             <h3>Underlying Data</h3>
             <table><tbody id="underlyingTable"></tbody></table>
           </div>
+
           <div class="card">
             <h3>Annual Return Components</h3>
             <table><tbody id="componentsTable"></tbody></table>
           </div>
+
           <div class="card">
             <h3>Valuation & Simulation</h3>
             <table><tbody id="valuationTable"></tbody></table>
@@ -251,9 +323,8 @@
         <div class="card">
           <h3>Model Notes</h3>
           <div class="subtle">
-            The DCF section uses free cash flow per share when available. If not, it uses EPS as a rough proxy.
-            The Monte Carlo section simulates many future price paths using the model's expected return and an estimated volatility.
-            The probability numbers are scenario-driven estimates, not guarantees.
+            The DCF section uses EPS as a fallback cash flow proxy because Alpha Vantage does not reliably provide free cash flow per share in the endpoint used here.
+            The simulation uses the model's estimated return and volatility to generate a distribution of possible ending prices.
           </div>
           <div class="pill-row" id="tagRow"></div>
         </div>
@@ -262,14 +333,21 @@
   </div>
 
   <script>
-    const API_KEY = "R3ADRK0I0LXX9JLD";
+    // =========================
+    // PASTE YOUR API KEY HERE
+    // =========================
+    const API_KEY = "PASTE_YOUR_KEY_HERE";
 
-    let projectionChart;
-    let distributionChart;
+    let projectionChart = null;
+    let distributionChart = null;
+
+    function safeNumber(value, fallback = 0) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+    }
 
     function average(arr) {
-      if (!arr.length) return 0;
-      return arr.reduce((a, b) => a + b, 0) / arr.length;
+      return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
     }
 
     function clamp(value, min, max) {
@@ -282,7 +360,7 @@
     }
 
     function annualizedReturnFromTarget(currentPrice, targetPrice, years = 1) {
-      if (!currentPrice || !targetPrice || currentPrice <= 0 || targetPrice <= 0) return 0;
+      if (!currentPrice || !targetPrice || currentPrice <= 0 || targetPrice <= 0 || years <= 0) return 0;
       return Math.pow(targetPrice / currentPrice, 1 / years) - 1;
     }
 
@@ -293,7 +371,6 @@
     }
 
     function betaPenalty(beta) {
-      if (!beta) return 0;
       return Math.max(0, beta - 1) * 0.015;
     }
 
@@ -302,15 +379,19 @@
     }
 
     function qualityAdjustment(qualityScore) {
-      if (qualityScore == null) return 0;
       return (qualityScore - 0.5) * 0.04;
     }
 
+    function hasApiLimit(obj) {
+      return obj && (obj.Information || obj.Note);
+    }
+
     function randn() {
-      let u = 0, v = 0;
+      let u = 0;
+      let v = 0;
       while (u === 0) u = Math.random();
       while (v === 0) v = Math.random();
-      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
     }
 
     function percentile(sortedArr, p) {
@@ -323,31 +404,38 @@
     }
 
     function formatPct(value) {
-      return (value * 100).toFixed(2) + "%";
+      return `${(value * 100).toFixed(2)}%`;
     }
 
     function formatMoney(value) {
-      return "$" + Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
+      return "$" + Number(value).toLocaleString(undefined, {
+        maximumFractionDigits: 2
+      });
     }
 
     function histogram(values, bins = 14) {
       if (!values.length) return { labels: [], counts: [] };
+
       const min = Math.min(...values);
       const max = Math.max(...values);
       const width = (max - min || 1) / bins;
+
       const counts = Array(bins).fill(0);
       const labels = [];
+
       for (let i = 0; i < bins; i++) {
         const start = min + i * width;
         const end = start + width;
         labels.push(`${formatMoney(start)}–${formatMoney(end)}`);
       }
+
       for (const value of values) {
         let idx = Math.floor((value - min) / width);
         if (idx >= bins) idx = bins - 1;
         if (idx < 0) idx = 0;
         counts[idx] += 1;
       }
+
       return { labels, counts };
     }
 
@@ -356,14 +444,60 @@
       let bear = currentPrice;
       let base = currentPrice;
       let bull = currentPrice;
+
       rows.push({ year: 0, bear, base, bull });
+
       for (let i = 1; i <= years; i++) {
         bear *= 1 + annualReturns.bearReturn;
         base *= 1 + annualReturns.baseReturn;
         bull *= 1 + annualReturns.bullReturn;
-        rows.push({ year: i, bear: Number(bear.toFixed(2)), base: Number(base.toFixed(2)), bull: Number(bull.toFixed(2)) });
+
+        rows.push({
+          year: i,
+          bear: Number(bear.toFixed(2)),
+          base: Number(base.toFixed(2)),
+          bull: Number(bull.toFixed(2))
+        });
       }
+
       return rows;
+    }
+
+    function calculateDCF(stock, years, discountRatePct, terminalGrowthPct) {
+      const dr = discountRatePct / 100;
+      const tg = terminalGrowthPct / 100;
+      const growth = clamp(stock.earningsGrowthTarget || stock.revenueCagr || 0.07, 0.02, 0.20);
+
+      const baseCashFlowPerShare = stock.eps || 0;
+
+      if (baseCashFlowPerShare <= 0) {
+        return {
+          intrinsicValue: stock.currentPrice,
+          annualizedUpside: 0,
+          baseCashFlowPerShare: 0,
+          note: "Using current price fallback"
+        };
+      }
+
+      let pv = 0;
+      let cashFlow = baseCashFlowPerShare;
+
+      for (let year = 1; year <= years; year++) {
+        cashFlow *= (1 + growth);
+        pv += cashFlow / Math.pow(1 + dr, year);
+      }
+
+      const safeSpread = Math.max(dr - tg, 0.01);
+      const terminalCashFlow = cashFlow * (1 + tg);
+      const terminalValue = terminalCashFlow / safeSpread;
+      pv += terminalValue / Math.pow(1 + dr, years);
+
+      return {
+        intrinsicValue: pv,
+        annualizedUpside: annualizedReturnFromTarget(stock.currentPrice, pv, years),
+        baseCashFlowPerShare,
+        note: "Using EPS proxy"
+      };
     }
 
     function projectionAlgorithm(stock, years) {
@@ -373,7 +507,7 @@
       const analystAnnualized = annualizedReturnFromTarget(stock.currentPrice, stock.analystTargetPrice, 1);
       const valuation = valuationAdjustment(stock.currentPE, stock.fairPE, years);
       const sentiment = sentimentAdjustment(stock.newsSentiment || 0);
-      const quality = qualityAdjustment(stock.qualityScore);
+      const quality = qualityAdjustment(stock.qualityScore || 0.5);
       const riskPenalty = betaPenalty(stock.beta || 1);
 
       let baseReturn =
@@ -391,6 +525,7 @@
 
       const estimatedVolatility = clamp(0.16 + ((stock.beta || 1) - 1) * 0.10, 0.12, 0.42);
       const uncertainty = clamp(0.07 + estimatedVolatility * 0.40, 0.09, 0.20);
+
       const bearReturn = clamp(baseReturn - uncertainty, -0.45, 0.20);
       const bullReturn = clamp(baseReturn + uncertainty, -0.05, 0.50);
 
@@ -414,360 +549,54 @@
     }
 
     function simulateMonteCarlo(currentPrice, years, expectedReturn, volatility, count) {
-      const endings = [];
+      const endingPrices = [];
+
       for (let i = 0; i < count; i++) {
         let price = currentPrice;
+
         for (let y = 0; y < years; y++) {
-          const randomShock = randn() * volatility;
-          const annualReturn = expectedReturn + randomShock;
+          const shock = randn() * volatility;
+          const annualReturn = expectedReturn + shock;
           price *= (1 + annualReturn);
-          if (price < 0.01) price = 0.01;
+
+          if (price < 0.01) {
+            price = 0.01;
+          }
         }
-        endings.push(price);
+
+        endingPrices.push(price);
       }
-      endings.sort((a, b) => a - b);
+
+      endingPrices.sort((a, b) => a - b);
+
       return {
-        endingPrices: endings,
-        p10: percentile(endings, 0.10),
-        p25: percentile(endings, 0.25),
-        p50: percentile(endings, 0.50),
-        p75: percentile(endings, 0.75),
-        p90: percentile(endings, 0.90),
-        chancePositive: endings.filter(v => v > currentPrice).length / endings.length
+        endingPrices,
+        p10: percentile(endingPrices, 0.10),
+        p25: percentile(endingPrices, 0.25),
+        p50: percentile(endingPrices, 0.50),
+        p75: percentile(endingPrices, 0.75),
+        p90: percentile(endingPrices, 0.90),
+        chancePositive: endingPrices.filter(v => v > currentPrice).length / endingPrices.length
       };
     }
 
-    function calculateDCF(stock, years, discountRate, terminalGrowth) {
-      const dr = discountRate / 100;
-      const tg = terminalGrowth / 100;
-      const growth = clamp(stock.earningsGrowthTarget || stock.revenueCagr || 0.07, 0.02, 0.20);
-      const baseCashFlowPerShare = stock.fcfPerShare || stock.eps || 0;
-      if (!baseCashFlowPerShare || baseCashFlowPerShare <= 0) {
-        return {
-          intrinsicValue: stock.currentPrice,
-          annualizedUpside: 0,
-          baseCashFlowPerShare: 0,
-          note: "Insufficient cash flow proxy"
-        };
-      }
-
-      let pv = 0;
-      let cashFlow = baseCashFlowPerShare;
-      for (let year = 1; year <= years; year++) {
-        cashFlow *= (1 + growth);
-        pv += cashFlow / Math.pow(1 + dr, year);
-      }
-
-      const terminalCashFlow = cashFlow * (1 + tg);
-      const terminalValue = terminalCashFlow / Math.max(dr - tg, 0.01);
-      pv += terminalValue / Math.pow(1 + dr, years);
-
-      const annualizedUpside = annualizedReturnFromTarget(stock.currentPrice, pv, years);
-      return {
-        intrinsicValue: pv,
-        annualizedUpside,
-        baseCashFlowPerShare,
-        note: stock.fcfPerShare ? "Using free cash flow/share" : "Using EPS proxy"
-      };
+    async function fetchJson(url) {
+      const res = await fetch(url);
+      return await res.json();
     }
 
     async function getStockData(ticker) {
       const symbol = ticker.toUpperCase().trim();
-      const monthlyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=${symbol}&apikey=${API_KEY}`;
-      const overviewUrl = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${API_KEY}`;
-      const newsUrl = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${symbol}&apikey=${API_KEY}`;
-      const earningsUrl = `https://www.alphavantage.co/query?function=EARNINGS&symbol=${symbol}&apikey=${API_KEY}`;
 
-      const [monthlyRes, overviewRes, newsRes, earningsRes] = await Promise.all([
-        fetch(monthlyUrl),
-        fetch(overviewUrl),
-        fetch(newsUrl),
-        fetch(earningsUrl)
-      ]);
+      const monthlyUrl =
+        `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=${symbol}&apikey=${API_KEY}`;
+      const overviewUrl =
+        `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${API_KEY}`;
+      const newsUrl =
+        `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${symbol}&apikey=${API_KEY}`;
+      const earningsUrl =
+        `https://www.alphavantage.co/query?function=EARNINGS&symbol=${symbol}&apikey=${API_KEY}`;
 
-      const monthlyJson = await monthlyRes.json();
-      const overviewJson = await overviewRes.json();
-      const newsJson = await newsRes.json();
-      const earningsJson = await earningsRes.json();
-
-      if (monthlyJson["Information"]) {
-        throw new Error("API limit reached. Wait and try again later.");
-      }
-      if (monthlyJson["Error Message"] || !monthlyJson["Monthly Adjusted Time Series"]) {
-        throw new Error(`Could not load price history for ${symbol}.`);
-      }
-      if (!overviewJson || !overviewJson.Symbol) {
-        throw new Error(`Could not load fundamentals for ${symbol}.`);
-      }
-
-      const seriesObj = monthlyJson["Monthly Adjusted Time Series"];
-      const dates = Object.keys(seriesObj).sort();
-      const closes = dates.map(date => Number(seriesObj[date]["5. adjusted close"]));
-      if (closes.length < 13) {
-        throw new Error(`Not enough historical data for ${symbol}.`);
-      }
-
-      const latestPrice = closes[closes.length - 1];
-      const monthsBack = Math.min(60, closes.length - 1);
-      const startPrice = closes[closes.length - 1 - monthsBack];
-      const historical5yCagr = calcCAGR(startPrice, latestPrice, monthsBack / 12);
-
-      const quarterlyEarningsGrowthYOY = Number(overviewJson.QuarterlyEarningsGrowthYOY || 0);
-      const quarterlyRevenueGrowthYOY = Number(overviewJson.QuarterlyRevenueGrowthYOY || 0);
-      const analystTargetPrice = Number(overviewJson.AnalystTargetPrice || latestPrice);
-      const currentPE = Number(overviewJson.PERatio || 20);
-      const beta = Number(overviewJson.Beta || 1);
-      const profitMargin = Number(overviewJson.ProfitMargin || 0);
-      const returnOnEquityTTM = Number(overviewJson.ReturnOnEquityTTM || 0);
-      const eps = Number(overviewJson.EPS || 0);
-      const sharesOutstanding = Number(overviewJson.SharesOutstanding || 0);
-      const marketCap = Number(overviewJson.MarketCapitalization || 0);
-      const operatingMarginTTM = Number(overviewJson.OperatingMarginTTM || 0);
-      const dividendYield = Number(overviewJson.DividendYield || 0);
-
-      let fairPE = 20;
-      if (currentPE > 0) {
-        fairPE = clamp(currentPE * 0.85, 16, 32);
-      }
-
-      const qualityScore = clamp(0.5 + (profitMargin * 0.7) + (returnOnEquityTTM * 0.35) + (operatingMarginTTM * 0.25), 0, 1);
-
-      let newsSentiment = 0;
-      if (newsJson.feed && Array.isArray(newsJson.feed) && newsJson.feed.length) {
-        const tickerScores = [];
-        for (const article of newsJson.feed.slice(0, 20)) {
-          if (article.ticker_sentiment && Array.isArray(article.ticker_sentiment)) {
-            const match = article.ticker_sentiment.find(x => x.ticker && x.ticker.toUpperCase() === symbol);
-            if (match && match.ticker_sentiment_score !== undefined) {
-              tickerScores.push(Number(match.ticker_sentiment_score));
-            }
-          }
-        }
-        if (tickerScores.length) newsSentiment = average(tickerScores);
-      }
-
-      let earningsSurpriseTrend = 0;
-      if (earningsJson.quarterlyEarnings && Array.isArray(earningsJson.quarterlyEarnings)) {
-        const latest = earningsJson.quarterlyEarnings.slice(0, 4).map(q => {
-          const actual = Number(q.reportedEPS || 0);
-          const estimate = Number(q.estimatedEPS || 0);
-          if (!estimate) return 0;
-          return (actual - estimate) / Math.abs(estimate);
-        });
-        earningsSurpriseTrend = average(latest);
-      }
-
-      const fcfPerShare = marketCap > 0 && sharesOutstanding > 0
-        ? Number(overviewJson.52WeekHigh ? 0 : 0)
-        : 0;
-
-      return {
-        ticker: symbol,
-        currentPrice: latestPrice,
-        historical5yCagr,
-        revenueCagr: quarterlyRevenueGrowthYOY || 0.06,
-        earningsGrowthTarget: quarterlyEarningsGrowthYOY || 0.08,
-        analystTargetPrice: analystTargetPrice || latestPrice,
-        currentPE: currentPE || 20,
-        fairPE,
-        beta: beta || 1,
-        newsSentiment: clamp(newsSentiment, -1, 1),
-        qualityScore,
-        eps,
-        fcfPerShare,
-        profitMargin,
-        operatingMarginTTM,
-        returnOnEquityTTM,
-        dividendYield,
-        earningsSurpriseTrend
-      };
-    }
-
-    function renderMetrics(stock, annualReturns, series, monteCarlo, dcf, years) {
-      const last = series[series.length - 1];
-      const metrics = [
-        ["Current Price", formatMoney(stock.currentPrice)],
-        ["Base Annual Return", formatPct(annualReturns.baseReturn)],
-        ["Bull Annual Return", formatPct(annualReturns.bullReturn)],
-        ["Estimated Volatility", formatPct(annualReturns.estimatedVolatility)],
-        [`Base ${years}-Year Value`, formatMoney(last.base)],
-        ["DCF Intrinsic Value", formatMoney(dcf.intrinsicValue)],
-        ["Monte Carlo Median", formatMoney(monteCarlo.p50)],
-        ["Chance Ending Higher", formatPct(monteCarlo.chancePositive)]
-      ];
-      document.getElementById("metrics").innerHTML = metrics.map(([label, value]) => `
-        <div class="metric">
-          <div class="metric-label">${label}</div>
-          <div class="metric-value">${value}</div>
-        </div>
-      `).join("");
-    }
-
-    function renderUnderlyingTable(stock) {
-      const rows = [
-        ["Ticker", stock.ticker],
-        ["Current Price", formatMoney(stock.currentPrice)],
-        ["Historical 5Y CAGR", formatPct(stock.historical5yCagr)],
-        ["Revenue Growth Proxy", formatPct(stock.revenueCagr)],
-        ["Earnings Growth Proxy", formatPct(stock.earningsGrowthTarget)],
-        ["Analyst Target Price", formatMoney(stock.analystTargetPrice)],
-        ["Current P/E", stock.currentPE.toFixed(2)],
-        ["Fair P/E", stock.fairPE.toFixed(2)],
-        ["Beta", stock.beta.toFixed(2)],
-        ["News Sentiment", formatPct(stock.newsSentiment)],
-        ["EPS", stock.eps ? stock.eps.toFixed(2) : "N/A"],
-        ["Profit Margin", formatPct(stock.profitMargin || 0)],
-        ["Operating Margin", formatPct(stock.operatingMarginTTM || 0)],
-        ["ROE", formatPct(stock.returnOnEquityTTM || 0)],
-        ["Dividend Yield", formatPct(stock.dividendYield || 0)],
-        ["Quality Score", Math.round(stock.qualityScore * 100) + " / 100"]
-      ];
-      document.getElementById("underlyingTable").innerHTML = rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join("");
-    }
-
-    function renderComponentsTable(components) {
-      const rows = [
-        ["Historical input", formatPct(components.historical)],
-        ["Revenue input", formatPct(components.revenue)],
-        ["Earnings input", formatPct(components.earnings)],
-        ["Analyst annualized", formatPct(components.analystAnnualized)],
-        ["Valuation adjustment", formatPct(components.valuation)],
-        ["Sentiment adjustment", formatPct(components.sentiment)],
-        ["Quality adjustment", formatPct(components.quality)],
-        ["DCF annualized upside", formatPct(components.dcfAnnualizedUpside)],
-        ["Risk penalty", "-" + formatPct(components.riskPenalty)]
-      ];
-      document.getElementById("componentsTable").innerHTML = rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join("");
-    }
-
-    function renderValuationTable(stock, monteCarlo, dcf) {
-      const rows = [
-        ["DCF Method", dcf.note],
-        ["DCF Base Cash Flow / Share", dcf.baseCashFlowPerShare ? dcf.baseCashFlowPerShare.toFixed(2) : "N/A"],
-        ["DCF Intrinsic Value", formatMoney(dcf.intrinsicValue)],
-        ["DCF Annualized Upside", formatPct(dcf.annualizedUpside)],
-        ["Monte Carlo P10", formatMoney(monteCarlo.p10)],
-        ["Monte Carlo P25", formatMoney(monteCarlo.p25)],
-        ["Monte Carlo Median", formatMoney(monteCarlo.p50)],
-        ["Monte Carlo P75", formatMoney(monteCarlo.p75)],
-        ["Monte Carlo P90", formatMoney(monteCarlo.p90)],
-        ["Chance Ending Above Today", formatPct(monteCarlo.chancePositive)],
-        ["Recent Earnings Surprise Trend", formatPct(stock.earningsSurpriseTrend || 0)]
-      ];
-      document.getElementById("valuationTable").innerHTML = rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join("");
-    }
-
-    function renderProjectionChart(series) {
-      const ctx = document.getElementById("projectionChart").getContext("2d");
-      if (projectionChart) projectionChart.destroy();
-      projectionChart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: series.map(row => "Year " + row.year),
-          datasets: [
-            { label: "Bear", data: series.map(row => row.bear), borderWidth: 2, tension: 0.25 },
-            { label: "Base", data: series.map(row => row.base), borderWidth: 2, tension: 0.25 },
-            { label: "Bull", data: series.map(row => row.bull), borderWidth: 2, tension: 0.25 }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return context.dataset.label + ": " + formatMoney(context.parsed.y);
-                }
-              }
-            }
-          },
-          scales: {
-            y: {
-              ticks: { callback: value => "$" + Number(value).toLocaleString() }
-            }
-          }
-        }
-      });
-    }
-
-    function renderDistributionChart(endingPrices) {
-      const ctx = document.getElementById("distributionChart").getContext("2d");
-      if (distributionChart) distributionChart.destroy();
-      const hist = histogram(endingPrices, 14);
-      distributionChart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: hist.labels,
-          datasets: [{ label: "Simulation Count", data: hist.counts, borderWidth: 1 }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { x: { ticks: { display: false } } }
-        }
-      });
-    }
-
-    function renderTags(stock, dcf) {
-      const tags = [];
-      if (stock.beta > 1.2) tags.push("High beta");
-      if (stock.newsSentiment > 0.1) tags.push("Positive news tone");
-      if (stock.newsSentiment < -0.1) tags.push("Negative news tone");
-      if (stock.qualityScore > 0.75) tags.push("High quality profile");
-      if (stock.currentPE > stock.fairPE) tags.push("Above fair P/E estimate");
-      if (stock.currentPE < stock.fairPE) tags.push("Below fair P/E estimate");
-      if (dcf.intrinsicValue > stock.currentPrice) tags.push("DCF upside");
-      if (stock.earningsSurpriseTrend > 0) tags.push("Recent earnings beats");
-      document.getElementById("tagRow").innerHTML = tags.map(tag => `<div class="pill">${tag}</div>`).join("");
-    }
-
-    function showError(message) {
-      const box = document.getElementById("errorBox");
-      box.style.display = "block";
-      box.textContent = message;
-    }
-
-    function clearError() {
-      const box = document.getElementById("errorBox");
-      box.style.display = "none";
-      box.textContent = "";
-    }
-
-    async function analyzeStock() {
-      clearError();
-      try {
-        const ticker = document.getElementById("ticker").value;
-        const years = Number(document.getElementById("years").value);
-        const simulations = Number(document.getElementById("simulations").value);
-        const discountRate = Number(document.getElementById("discountRate").value);
-        const terminalGrowth = Number(document.getElementById("terminalGrowth").value);
-
-        if (!API_KEY || API_KEY === "YOUR_ALPHA_VANTAGE_KEY") {
-          throw new Error("Add your Alpha Vantage API key to the API_KEY constant near the top of the script.");
-        }
-
-        const stock = await getStockData(ticker);
-        const dcf = calculateDCF(stock, years, discountRate, terminalGrowth);
-        stock.dcfAnnualizedUpside = dcf.annualizedUpside;
-        const annualReturns = projectionAlgorithm(stock, years);
-        const series = buildProjectionSeries(stock.currentPrice, years, annualReturns);
-        const monteCarlo = simulateMonteCarlo(stock.currentPrice, years, annualReturns.baseReturn, annualReturns.estimatedVolatility, simulations);
-
-        renderMetrics(stock, annualReturns, series, monteCarlo, dcf, years);
-        renderUnderlyingTable(stock);
-        renderComponentsTable(annualReturns.components);
-        renderValuationTable(stock, monteCarlo, dcf);
-        renderProjectionChart(series);
-        renderDistributionChart(monteCarlo.endingPrices);
-        renderTags(stock, dcf);
-      } catch (error) {
-        showError(error.message || "Unable to analyze this stock.");
-      }
-    }
-
-    document.getElementById("analyzeBtn").addEventListener("click", analyzeStock);
-  </script>
-</body>
-</html>
+      const [monthlyJson, overviewJson, newsJson, earningsJson] = await Promise.all([
+        fetchJson(monthlyUrl),
+        fetchJson(
