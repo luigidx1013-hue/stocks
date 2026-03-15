@@ -1,683 +1,1046 @@
-<script>
-  // =========================
-  // PASTE YOUR FMP API KEY HERE
-  // =========================
-  const FMP_API_KEY = "UJa8quhJAwCwMKqi46dDxxtI7FVYJ345";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Projection Analyzer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f7fb;
+      color: #1f2937;
+    }
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    .header { margin-bottom: 20px; }
+    .header h1 { margin: 0 0 8px; font-size: 2rem; }
+    .header p { margin: 0; color: #4b5563; line-height: 1.5; }
+    .warning {
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      color: #9a3412;
+      padding: 14px 16px;
+      border-radius: 14px;
+      margin: 18px 0 24px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .card {
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+      padding: 20px;
+    }
+    .card h2, .card h3 { margin-top: 0; }
+    label {
+      display: block;
+      font-weight: 600;
+      margin: 14px 0 6px;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      font-size: 1rem;
+      background: white;
+    }
+    button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      background: #2563eb;
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+    button:disabled {
+      background: #93c5fd;
+      cursor: not-allowed;
+    }
+    .small-note {
+      margin-top: 12px;
+      color: #6b7280;
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+    .stack { display: grid; gap: 20px; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .metric {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+    }
+    .metric-label {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .metric-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+    .two-col, .three-col {
+      display: grid;
+      gap: 20px;
+    }
+    .two-col { grid-template-columns: 1fr 1fr; }
+    .three-col { grid-template-columns: 1fr 1fr 1fr; }
+    .chart-wrap {
+      height: 360px;
+      position: relative;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top;
+    }
+    th {
+      color: #475569;
+      font-weight: 700;
+      width: 52%;
+    }
+    .error, .loading, .success {
+      padding: 12px 14px;
+      border-radius: 12px;
+      display: none;
+      margin-bottom: 12px;
+    }
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+    }
+    .loading {
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      color: #1d4ed8;
+    }
+    .success {
+      background: #ecfdf5;
+      border: 1px solid #86efac;
+      color: #166534;
+    }
+    .subtle {
+      color: #64748b;
+      font-size: 0.93rem;
+      line-height: 1.45;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1e40af;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .mono {
+      font-family: Menlo, Monaco, Consolas, monospace;
+      word-break: break-all;
+    }
+    .footer-note {
+      margin-top: 16px;
+      font-size: 0.88rem;
+      color: #64748b;
+      line-height: 1.5;
+    }
+    @media (max-width: 1050px) {
+      .grid, .metrics, .two-col, .three-col {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Stock Projection Analyzer</h1>
+      <p>
+        Enter a stock ticker to estimate future scenarios using historical returns,
+        valuation, growth proxies, analyst target fallback logic, and Monte Carlo simulation.
+      </p>
+    </div>
 
-  let projectionChart = null;
-  let distributionChart = null;
+    <div class="warning">
+      Educational use only. This is not financial advice.
+    </div>
 
-  function safeNumber(value, fallback = 0) {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : fallback;
-  }
+    <div class="grid">
+      <div class="stack">
+        <div class="card">
+          <h2>Inputs</h2>
 
-  function average(arr) {
-    return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-  }
+          <label for="ticker">Ticker</label>
+          <input id="ticker" type="text" value="AAPL" placeholder="AAPL" />
 
-  function clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
+          <label for="years">Projection Years</label>
+          <input id="years" type="number" min="1" max="30" value="5" />
 
-  function calcCAGR(startValue, endValue, years) {
-    if (!startValue || !endValue || years <= 0 || startValue <= 0 || endValue <= 0) return 0;
-    return Math.pow(endValue / startValue, 1 / years) - 1;
-  }
+          <label for="simulations">Monte Carlo Simulations</label>
+          <select id="simulations">
+            <option value="250">250</option>
+            <option value="500" selected>500</option>
+            <option value="1000">1000</option>
+            <option value="2000">2000</option>
+          </select>
 
-  function annualizedReturnFromTarget(currentPrice, targetPrice, years = 1) {
-    if (!currentPrice || !targetPrice || currentPrice <= 0 || targetPrice <= 0 || years <= 0) return 0;
-    return Math.pow(targetPrice / currentPrice, 1 / years) - 1;
-  }
+          <label for="discountRate">Discount Rate (%)</label>
+          <input id="discountRate" type="number" min="4" max="20" step="0.1" value="9.0" />
 
-  function valuationAdjustment(currentPE, fairPE, horizonYears) {
-    if (!currentPE || !fairPE || currentPE <= 0 || fairPE <= 0) return 0;
-    const totalReversion = fairPE / currentPE - 1;
-    return totalReversion / Math.max(horizonYears, 1);
-  }
+          <label for="terminalGrowth">Terminal Growth Rate (%)</label>
+          <input id="terminalGrowth" type="number" min="1" max="6" step="0.1" value="3.0" />
 
-  function betaPenalty(beta) {
-    return Math.max(0, beta - 1) * 0.015;
-  }
+          <button id="analyzeBtn">Analyze Stock</button>
 
-  function qualityAdjustment(qualityScore) {
-    return (qualityScore - 0.5) * 0.04;
-  }
+          <div class="small-note">
+            Paste your Financial Modeling Prep key into the
+            <span class="mono">FMP_API_KEY</span> constant near the top of the script.
+          </div>
+        </div>
 
-  function randn() {
-    let u = 0;
-    let v = 0;
-    while (u === 0) u = Math.random();
-    while (v === 0) v = Math.random();
-    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-  }
+        <div class="card">
+          <h3>API key location</h3>
+          <div class="subtle">Edit this line in the script:</div>
+          <div class="mono">const FMP_API_KEY = "PASTE_YOUR_FMP_KEY_HERE";</div>
+        </div>
 
-  function percentile(sortedArr, p) {
-    if (!sortedArr.length) return 0;
-    const idx = (sortedArr.length - 1) * p;
-    const low = Math.floor(idx);
-    const high = Math.ceil(idx);
-    if (low === high) return sortedArr[low];
-    return sortedArr[low] + (sortedArr[high] - sortedArr[low]) * (idx - low);
-  }
+        <div class="card">
+          <h3>Debug tips</h3>
+          <div class="subtle">
+            If the page is blank, open your browser console and look for the first red error.
+            This version is written as one complete file to reduce copy/paste issues.
+          </div>
+        </div>
+      </div>
 
-  function formatPct(value) {
-    return `${(safeNumber(value, 0) * 100).toFixed(2)}%`;
-  }
+      <div class="stack">
+        <div id="errorBox" class="error"></div>
+        <div id="loadingBox" class="loading">Loading data and running simulation...</div>
+        <div id="successBox" class="success"></div>
 
-  function formatMoney(value) {
-    return "$" + safeNumber(value, 0).toLocaleString(undefined, {
-      maximumFractionDigits: 2
-    });
-  }
+        <div class="metrics" id="metrics"></div>
 
-  function histogram(values, bins = 14) {
-    if (!values.length) return { labels: [], counts: [] };
+        <div class="two-col">
+          <div class="card">
+            <h2>Projection Paths</h2>
+            <div class="chart-wrap">
+              <canvas id="projectionChart"></canvas>
+            </div>
+          </div>
 
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const width = (max - min || 1) / bins;
+          <div class="card">
+            <h2>Monte Carlo Distribution</h2>
+            <div class="chart-wrap">
+              <canvas id="distributionChart"></canvas>
+            </div>
+          </div>
+        </div>
 
-    const counts = Array(bins).fill(0);
-    const labels = [];
+        <div class="three-col">
+          <div class="card">
+            <h3>Underlying Data</h3>
+            <table><tbody id="underlyingTable"></tbody></table>
+          </div>
 
-    for (let i = 0; i < bins; i++) {
-      const start = min + i * width;
-      const end = start + width;
-      labels.push(`${formatMoney(start)}–${formatMoney(end)}`);
+          <div class="card">
+            <h3>Return Components</h3>
+            <table><tbody id="componentsTable"></tbody></table>
+          </div>
+
+          <div class="card">
+            <h3>Valuation & Simulation</h3>
+            <table><tbody id="valuationTable"></tbody></table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Flags</h3>
+          <div class="subtle">
+            This version uses FMP historical prices and company profile data as the required inputs.
+            Optional data like price targets and earnings surprises use safe fallbacks.
+          </div>
+          <div class="pill-row" id="tagRow"></div>
+          <div class="footer-note" id="dataNotes"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // PASTE YOUR FMP API KEY HERE
+    // =========================
+    const FMP_API_KEY = "UJa8quhJAwCwMKqi46dDxxtI7FVYJ345";
+
+    let projectionChart = null;
+    let distributionChart = null;
+
+    function safeNumber(value, fallback = 0) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
     }
 
-    for (const value of values) {
-      let idx = Math.floor((value - min) / width);
-      if (idx >= bins) idx = bins - 1;
-      if (idx < 0) idx = 0;
-      counts[idx] += 1;
+    function average(arr) {
+      return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
     }
 
-    return { labels, counts };
-  }
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
 
-  function buildProjectionSeries(currentPrice, years, annualReturns) {
-    const rows = [];
-    let bear = currentPrice;
-    let base = currentPrice;
-    let bull = currentPrice;
+    function calcCAGR(startValue, endValue, years) {
+      if (!startValue || !endValue || years <= 0 || startValue <= 0 || endValue <= 0) return 0;
+      return Math.pow(endValue / startValue, 1 / years) - 1;
+    }
 
-    rows.push({ year: 0, bear, base, bull });
+    function annualizedReturnFromTarget(currentPrice, targetPrice, years = 1) {
+      if (!currentPrice || !targetPrice || currentPrice <= 0 || targetPrice <= 0 || years <= 0) return 0;
+      return Math.pow(targetPrice / currentPrice, 1 / years) - 1;
+    }
 
-    for (let i = 1; i <= years; i++) {
-      bear *= (1 + annualReturns.bearReturn);
-      base *= (1 + annualReturns.baseReturn);
-      bull *= (1 + annualReturns.bullReturn);
+    function valuationAdjustment(currentPE, fairPE, horizonYears) {
+      if (!currentPE || !fairPE || currentPE <= 0 || fairPE <= 0) return 0;
+      const totalReversion = fairPE / currentPE - 1;
+      return totalReversion / Math.max(horizonYears, 1);
+    }
 
-      rows.push({
-        year: i,
-        bear: Number(bear.toFixed(2)),
-        base: Number(base.toFixed(2)),
-        bull: Number(bull.toFixed(2))
+    function betaPenalty(beta) {
+      return Math.max(0, beta - 1) * 0.015;
+    }
+
+    function qualityAdjustment(qualityScore) {
+      return (qualityScore - 0.5) * 0.04;
+    }
+
+    function randn() {
+      let u = 0;
+      let v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+
+    function percentile(sortedArr, p) {
+      if (!sortedArr.length) return 0;
+      const idx = (sortedArr.length - 1) * p;
+      const low = Math.floor(idx);
+      const high = Math.ceil(idx);
+      if (low === high) return sortedArr[low];
+      return sortedArr[low] + (sortedArr[high] - sortedArr[low]) * (idx - low);
+    }
+
+    function formatPct(value) {
+      return `${(safeNumber(value, 0) * 100).toFixed(2)}%`;
+    }
+
+    function formatMoney(value) {
+      return "$" + safeNumber(value, 0).toLocaleString(undefined, {
+        maximumFractionDigits: 2
       });
     }
 
-    return rows;
-  }
+    function histogram(values, bins = 14) {
+      if (!values.length) return { labels: [], counts: [] };
 
-  function calculateDCF(stock, years, discountRatePct, terminalGrowthPct) {
-    const dr = discountRatePct / 100;
-    const tg = terminalGrowthPct / 100;
-    const growth = clamp(stock.earningsGrowthTarget || stock.revenueCagr || 0.07, 0.02, 0.20);
-    const baseCashFlowPerShare = stock.eps || 0;
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const width = (max - min || 1) / bins;
 
-    if (baseCashFlowPerShare <= 0) {
+      const counts = Array(bins).fill(0);
+      const labels = [];
+
+      for (let i = 0; i < bins; i++) {
+        const start = min + i * width;
+        const end = start + width;
+        labels.push(`${formatMoney(start)}–${formatMoney(end)}`);
+      }
+
+      for (const value of values) {
+        let idx = Math.floor((value - min) / width);
+        if (idx >= bins) idx = bins - 1;
+        if (idx < 0) idx = 0;
+        counts[idx] += 1;
+      }
+
+      return { labels, counts };
+    }
+
+    function buildProjectionSeries(currentPrice, years, annualReturns) {
+      const rows = [];
+      let bear = currentPrice;
+      let base = currentPrice;
+      let bull = currentPrice;
+
+      rows.push({ year: 0, bear: currentPrice, base: currentPrice, bull: currentPrice });
+
+      for (let i = 1; i <= years; i++) {
+        bear *= (1 + annualReturns.bearReturn);
+        base *= (1 + annualReturns.baseReturn);
+        bull *= (1 + annualReturns.bullReturn);
+
+        rows.push({
+          year: i,
+          bear: Number(bear.toFixed(2)),
+          base: Number(base.toFixed(2)),
+          bull: Number(bull.toFixed(2))
+        });
+      }
+
+      return rows;
+    }
+
+    function calculateDCF(stock, years, discountRatePct, terminalGrowthPct) {
+      const dr = discountRatePct / 100;
+      const tg = terminalGrowthPct / 100;
+      const growth = clamp(stock.earningsGrowthTarget || stock.revenueCagr || 0.07, 0.02, 0.20);
+      const baseCashFlowPerShare = stock.eps || 0;
+
+      if (baseCashFlowPerShare <= 0) {
+        return {
+          intrinsicValue: stock.currentPrice,
+          annualizedUpside: 0,
+          baseCashFlowPerShare: 0,
+          note: "Using current price fallback"
+        };
+      }
+
+      let pv = 0;
+      let cashFlow = baseCashFlowPerShare;
+
+      for (let year = 1; year <= years; year++) {
+        cashFlow *= (1 + growth);
+        pv += cashFlow / Math.pow(1 + dr, year);
+      }
+
+      const safeSpread = Math.max(dr - tg, 0.01);
+      const terminalCashFlow = cashFlow * (1 + tg);
+      const terminalValue = terminalCashFlow / safeSpread;
+      pv += terminalValue / Math.pow(1 + dr, years);
+
       return {
-        intrinsicValue: stock.currentPrice,
-        annualizedUpside: 0,
-        baseCashFlowPerShare: 0,
-        note: "Using current price fallback"
+        intrinsicValue: pv,
+        annualizedUpside: annualizedReturnFromTarget(stock.currentPrice, pv, years),
+        baseCashFlowPerShare,
+        note: "Using EPS proxy"
       };
     }
 
-    let pv = 0;
-    let cashFlow = baseCashFlowPerShare;
+    function projectionAlgorithm(stock, years) {
+      const hist = stock.historical5yCagr || 0;
+      const rev = stock.revenueCagr || 0;
+      const earn = stock.earningsGrowthTarget || 0;
+      const analystAnnualized = annualizedReturnFromTarget(stock.currentPrice, stock.analystTargetPrice, 1);
+      const valuation = valuationAdjustment(stock.currentPE, stock.fairPE, years);
+      const quality = qualityAdjustment(stock.qualityScore || 0.5);
+      const riskPenalty = betaPenalty(stock.beta || 1);
 
-    for (let year = 1; year <= years; year++) {
-      cashFlow *= (1 + growth);
-      pv += cashFlow / Math.pow(1 + dr, year);
-    }
+      let baseReturn =
+        hist * 0.30 +
+        rev * 0.16 +
+        earn * 0.20 +
+        analystAnnualized * 0.12 +
+        valuation * 0.10 +
+        quality * 0.06 +
+        (stock.dcfAnnualizedUpside || 0) * 0.06 -
+        riskPenalty;
 
-    const safeSpread = Math.max(dr - tg, 0.01);
-    const terminalCashFlow = cashFlow * (1 + tg);
-    const terminalValue = terminalCashFlow / safeSpread;
-    pv += terminalValue / Math.pow(1 + dr, years);
+      baseReturn = clamp(baseReturn, -0.25, 0.32);
 
-    return {
-      intrinsicValue: pv,
-      annualizedUpside: annualizedReturnFromTarget(stock.currentPrice, pv, years),
-      baseCashFlowPerShare,
-      note: "Using EPS proxy"
-    };
-  }
+      const estimatedVolatility = clamp(0.16 + ((stock.beta || 1) - 1) * 0.10, 0.12, 0.42);
+      const uncertainty = clamp(0.07 + estimatedVolatility * 0.40, 0.09, 0.20);
 
-  function projectionAlgorithm(stock, years) {
-    const hist = stock.historical5yCagr || 0;
-    const rev = stock.revenueCagr || 0;
-    const earn = stock.earningsGrowthTarget || 0;
-    const analystAnnualized = annualizedReturnFromTarget(stock.currentPrice, stock.analystTargetPrice, 1);
-    const valuation = valuationAdjustment(stock.currentPE, stock.fairPE, years);
-    const quality = qualityAdjustment(stock.qualityScore || 0.5);
-    const riskPenalty = betaPenalty(stock.beta || 1);
-
-    let baseReturn =
-      hist * 0.30 +
-      rev * 0.16 +
-      earn * 0.20 +
-      analystAnnualized * 0.12 +
-      valuation * 0.10 +
-      quality * 0.06 +
-      (stock.dcfAnnualizedUpside || 0) * 0.06 -
-      riskPenalty;
-
-    baseReturn = clamp(baseReturn, -0.25, 0.32);
-
-    const estimatedVolatility = clamp(0.16 + ((stock.beta || 1) - 1) * 0.10, 0.12, 0.42);
-    const uncertainty = clamp(0.07 + estimatedVolatility * 0.40, 0.09, 0.20);
-
-    return {
-      baseReturn,
-      bearReturn: clamp(baseReturn - uncertainty, -0.45, 0.20),
-      bullReturn: clamp(baseReturn + uncertainty, -0.05, 0.50),
-      estimatedVolatility,
-      components: {
-        historical: hist,
-        revenue: rev,
-        earnings: earn,
-        analystAnnualized,
-        valuation,
-        quality,
-        dcfAnnualizedUpside: stock.dcfAnnualizedUpside || 0,
-        riskPenalty
-      }
-    };
-  }
-
-  function simulateMonteCarlo(currentPrice, years, expectedReturn, volatility, count) {
-    const endingPrices = [];
-
-    for (let i = 0; i < count; i++) {
-      let price = currentPrice;
-
-      for (let y = 0; y < years; y++) {
-        const annualReturn = expectedReturn + randn() * volatility;
-        price *= (1 + annualReturn);
-        if (price < 0.01) price = 0.01;
-      }
-
-      endingPrices.push(price);
-    }
-
-    endingPrices.sort((a, b) => a - b);
-
-    return {
-      endingPrices,
-      p10: percentile(endingPrices, 0.10),
-      p25: percentile(endingPrices, 0.25),
-      p50: percentile(endingPrices, 0.50),
-      p75: percentile(endingPrices, 0.75),
-      p90: percentile(endingPrices, 0.90),
-      chancePositive: endingPrices.filter(v => v > currentPrice).length / endingPrices.length
-    };
-  }
-
-  async function fetchJson(url) {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) {
-      throw new Error(`HTTP error ${res.status}`);
-    }
-    const data = await res.json();
-    return data;
-  }
-
-  function getApiMessage(payload) {
-    if (!payload) return null;
-    if (typeof payload === "string") return payload;
-    return payload.Error || payload.error || payload.message || null;
-  }
-
-  async function safeOptionalFetch(url) {
-    try {
-      return await fetchJson(url);
-    } catch (err) {
-      console.warn("Optional endpoint failed:", err.message);
-      return null;
-    }
-  }
-
-  async function getStockData(ticker) {
-    const symbol = ticker.toUpperCase().trim();
-
-    if (!symbol) {
-      throw new Error("Enter a ticker symbol.");
-    }
-
-    if (!FMP_API_KEY || FMP_API_KEY === "PASTE_YOUR_FMP_KEY_HERE") {
-      throw new Error("Paste your Financial Modeling Prep key into FMP_API_KEY near the top of the script.");
-    }
-
-    const historicalUrl =
-      `https://financialmodelingprep.com/api/v3/historical-price-full/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
-
-    const profileUrl =
-      `https://financialmodelingprep.com/api/v3/profile/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
-
-    const [historicalJson, profileJson] = await Promise.all([
-      fetchJson(historicalUrl),
-      fetchJson(profileUrl)
-    ]);
-
-    const historicalMsg = getApiMessage(historicalJson);
-    const profileMsg = getApiMessage(profileJson);
-
-    if (historicalMsg && !historicalJson.historical) {
-      throw new Error(`Historical data error: ${historicalMsg}`);
-    }
-
-    if (profileMsg && !Array.isArray(profileJson)) {
-      throw new Error(`Profile data error: ${profileMsg}`);
-    }
-
-    if (!historicalJson.historical || !Array.isArray(historicalJson.historical) || historicalJson.historical.length < 30) {
-      throw new Error(`Could not load enough historical price data for ${symbol}.`);
-    }
-
-    if (!Array.isArray(profileJson) || !profileJson.length) {
-      throw new Error(`Could not load company profile for ${symbol}.`);
-    }
-
-    const profile = profileJson[0];
-
-    const historical = historicalJson.historical
-      .slice()
-      .reverse()
-      .map(row => ({
-        date: row.date,
-        close: safeNumber(row.adjClose ?? row.close, 0)
-      }))
-      .filter(row => row.close > 0);
-
-    if (historical.length < 30) {
-      throw new Error(`Not enough valid price history for ${symbol}.`);
-    }
-
-    const closes = historical.map(row => row.close);
-    const latestPriceFromHistory = closes[closes.length - 1];
-    const currentPrice = safeNumber(profile.price, latestPriceFromHistory) || latestPriceFromHistory;
-
-    const tradingDaysBack = Math.min(252 * 5, closes.length - 1);
-    const startPrice = closes[closes.length - 1 - tradingDaysBack];
-    const historical5yCagr = calcCAGR(startPrice, latestPriceFromHistory, tradingDaysBack / 252);
-
-    const beta = safeNumber(profile.beta, 1);
-    const currentPE = safeNumber(profile.pe, 20);
-    const eps = safeNumber(profile.eps, 0);
-    const profitMargin = safeNumber(profile.profitMargin, 0.12);
-    const operatingMarginTTM = safeNumber(profile.operatingMargin, profitMargin);
-    const returnOnEquityTTM = safeNumber(profile.roe, 0.15);
-
-    const dividendPerShare = safeNumber(profile.lastDiv, 0);
-    const dividendYield = currentPrice > 0 ? dividendPerShare / currentPrice : 0;
-
-    // Optional endpoints: if they fail, the model still runs.
-    const priceTargetUrl =
-      `https://financialmodelingprep.com/api/v4/price-target-consensus?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(FMP_API_KEY)}`;
-
-    const earningsSurpriseUrl =
-      `https://financialmodelingprep.com/api/v3/earnings-surprises/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
-
-    const [priceTargetJson, earningsJson] = await Promise.all([
-      safeOptionalFetch(priceTargetUrl),
-      safeOptionalFetch(earningsSurpriseUrl)
-    ]);
-
-    let analystTargetPrice = currentPrice;
-    if (Array.isArray(priceTargetJson) && priceTargetJson.length) {
-      const targetRow = priceTargetJson[0];
-      analystTargetPrice = safeNumber(
-        targetRow.targetConsensus ?? targetRow.targetPrice ?? targetRow.priceTarget,
-        currentPrice
-      );
-    }
-
-    let earningsSurpriseTrend = 0;
-    if (Array.isArray(earningsJson) && earningsJson.length) {
-      const recent = earningsJson.slice(0, 4).map(row => {
-        const actual = safeNumber(row.actualEarningResult ?? row.actualEPS, 0);
-        const estimate = safeNumber(row.estimatedEarning ?? row.estimatedEPS, 0);
-        if (!estimate) return 0;
-        return (actual - estimate) / Math.abs(estimate);
-      });
-      earningsSurpriseTrend = average(recent);
-    }
-
-    // Growth proxies with safe fallbacks so the model always runs
-    const revenueCagr = clamp(
-      safeNumber(profile.revenueGrowth, 0) ||
-      safeNumber(profile.growthRevenue, 0) ||
-      Math.max(historical5yCagr * 0.55, 0.04),
-      -0.05,
-      0.25
-    );
-
-    const earningsGrowthTarget = clamp(
-      safeNumber(profile.earningsGrowth, 0) ||
-      safeNumber(profile.growthEPS, 0) ||
-      Math.max(historical5yCagr * 0.75, 0.05),
-      -0.05,
-      0.30
-    );
-
-    let fairPE = 20;
-    if (currentPE > 0) {
-      fairPE = clamp(currentPE * 0.85, 16, 32);
-    }
-
-    const qualityScore = clamp(
-      0.5 +
-      profitMargin * 0.7 +
-      operatingMarginTTM * 0.25 +
-      returnOnEquityTTM * 0.35,
-      0,
-      1
-    );
-
-    return {
-      ticker: symbol,
-      currentPrice,
-      historical5yCagr,
-      revenueCagr,
-      earningsGrowthTarget,
-      analystTargetPrice,
-      currentPE,
-      fairPE,
-      beta,
-      qualityScore,
-      eps,
-      profitMargin,
-      operatingMarginTTM,
-      returnOnEquityTTM,
-      dividendYield,
-      earningsSurpriseTrend
-    };
-  }
-
-  function renderMetrics(stock, annualReturns, series, monteCarlo, dcf, years) {
-    const last = series[series.length - 1];
-
-    const metrics = [
-      ["Current Price", formatMoney(stock.currentPrice)],
-      ["Base Annual Return", formatPct(annualReturns.baseReturn)],
-      ["Bull Annual Return", formatPct(annualReturns.bullReturn)],
-      ["Estimated Volatility", formatPct(annualReturns.estimatedVolatility)],
-      [`Base ${years}-Year Value`, formatMoney(last.base)],
-      ["DCF Intrinsic Value", formatMoney(dcf.intrinsicValue)],
-      ["Monte Carlo Median", formatMoney(monteCarlo.p50)],
-      ["Chance Ending Higher", formatPct(monteCarlo.chancePositive)]
-    ];
-
-    document.getElementById("metrics").innerHTML = metrics.map(([label, value]) => `
-      <div class="metric">
-        <div class="metric-label">${label}</div>
-        <div class="metric-value">${value}</div>
-      </div>
-    `).join("");
-  }
-
-  function renderUnderlyingTable(stock) {
-    const rows = [
-      ["Ticker", stock.ticker],
-      ["Current Price", formatMoney(stock.currentPrice)],
-      ["Historical 5Y CAGR", formatPct(stock.historical5yCagr)],
-      ["Revenue Growth Proxy", formatPct(stock.revenueCagr)],
-      ["Earnings Growth Proxy", formatPct(stock.earningsGrowthTarget)],
-      ["Analyst Target Price", formatMoney(stock.analystTargetPrice)],
-      ["Current P/E", safeNumber(stock.currentPE).toFixed(2)],
-      ["Fair P/E", safeNumber(stock.fairPE).toFixed(2)],
-      ["Beta", safeNumber(stock.beta).toFixed(2)],
-      ["EPS", stock.eps ? safeNumber(stock.eps).toFixed(2) : "N/A"],
-      ["Profit Margin", formatPct(stock.profitMargin || 0)],
-      ["Operating Margin", formatPct(stock.operatingMarginTTM || 0)],
-      ["ROE", formatPct(stock.returnOnEquityTTM || 0)],
-      ["Dividend Yield", formatPct(stock.dividendYield || 0)],
-      ["Quality Score", `${Math.round((stock.qualityScore || 0) * 100)} / 100`]
-    ];
-
-    document.getElementById("underlyingTable").innerHTML = rows.map(([k, v]) => `
-      <tr><th>${k}</th><td>${v}</td></tr>
-    `).join("");
-  }
-
-  function renderComponentsTable(components) {
-    const rows = [
-      ["Historical input", formatPct(components.historical)],
-      ["Revenue input", formatPct(components.revenue)],
-      ["Earnings input", formatPct(components.earnings)],
-      ["Analyst annualized", formatPct(components.analystAnnualized)],
-      ["Valuation adjustment", formatPct(components.valuation)],
-      ["Quality adjustment", formatPct(components.quality)],
-      ["DCF annualized upside", formatPct(components.dcfAnnualizedUpside)],
-      ["Risk penalty", "-" + formatPct(components.riskPenalty)]
-    ];
-
-    document.getElementById("componentsTable").innerHTML = rows.map(([k, v]) => `
-      <tr><th>${k}</th><td>${v}</td></tr>
-    `).join("");
-  }
-
-  function renderValuationTable(stock, monteCarlo, dcf) {
-    const rows = [
-      ["DCF Method", dcf.note],
-      ["DCF Base Cash Flow / Share", dcf.baseCashFlowPerShare ? dcf.baseCashFlowPerShare.toFixed(2) : "N/A"],
-      ["DCF Intrinsic Value", formatMoney(dcf.intrinsicValue)],
-      ["DCF Annualized Upside", formatPct(dcf.annualizedUpside)],
-      ["Monte Carlo P10", formatMoney(monteCarlo.p10)],
-      ["Monte Carlo P25", formatMoney(monteCarlo.p25)],
-      ["Monte Carlo Median", formatMoney(monteCarlo.p50)],
-      ["Monte Carlo P75", formatMoney(monteCarlo.p75)],
-      ["Monte Carlo P90", formatMoney(monteCarlo.p90)],
-      ["Chance Ending Above Today", formatPct(monteCarlo.chancePositive)],
-      ["Recent Earnings Surprise Trend", formatPct(stock.earningsSurpriseTrend || 0)]
-    ];
-
-    document.getElementById("valuationTable").innerHTML = rows.map(([k, v]) => `
-      <tr><th>${k}</th><td>${v}</td></tr>
-    `).join("");
-  }
-
-  function renderProjectionChart(series) {
-    const ctx = document.getElementById("projectionChart").getContext("2d");
-
-    if (projectionChart) {
-      projectionChart.destroy();
-    }
-
-    projectionChart = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: series.map(row => `Year ${row.year}`),
-        datasets: [
-          {
-            label: "Bear",
-            data: series.map(row => row.bear),
-            borderColor: "#dc2626",
-            backgroundColor: "rgba(220,38,38,0.12)",
-            borderWidth: 2,
-            tension: 0.25,
-            pointRadius: 2
-          },
-          {
-            label: "Base",
-            data: series.map(row => row.base),
-            borderColor: "#2563eb",
-            backgroundColor: "rgba(37,99,235,0.12)",
-            borderWidth: 2,
-            tension: 0.25,
-            pointRadius: 2
-          },
-          {
-            label: "Bull",
-            data: series.map(row => row.bull),
-            borderColor: "#16a34a",
-            backgroundColor: "rgba(22,163,74,0.12)",
-            borderWidth: 2,
-            tension: 0.25,
-            pointRadius: 2
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return `${context.dataset.label}: ${formatMoney(context.parsed.y)}`;
-              }
-            }
-          }
-        },
-        scales: {
-          y: {
-            ticks: {
-              callback: function(value) {
-                return "$" + Number(value).toLocaleString();
-              }
-            }
-          }
+      return {
+        baseReturn,
+        bearReturn: clamp(baseReturn - uncertainty, -0.45, 0.20),
+        bullReturn: clamp(baseReturn + uncertainty, -0.05, 0.50),
+        estimatedVolatility,
+        components: {
+          historical: hist,
+          revenue: rev,
+          earnings: earn,
+          analystAnnualized,
+          valuation,
+          quality,
+          dcfAnnualizedUpside: stock.dcfAnnualizedUpside || 0,
+          riskPenalty
         }
-      }
-    });
-  }
-
-  function renderDistributionChart(endingPrices) {
-    const ctx = document.getElementById("distributionChart").getContext("2d");
-
-    if (distributionChart) {
-      distributionChart.destroy();
+      };
     }
 
-    const hist = histogram(endingPrices, 14);
+    function simulateMonteCarlo(currentPrice, years, expectedReturn, volatility, count) {
+      const endingPrices = [];
 
-    distributionChart = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: hist.labels,
-        datasets: [{
-          label: "Simulation Count",
-          data: hist.counts,
-          backgroundColor: "rgba(37,99,235,0.55)",
-          borderColor: "#1d4ed8",
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          x: {
-            ticks: { display: false }
-          },
-          y: {
-            beginAtZero: true
-          }
+      for (let i = 0; i < count; i++) {
+        let price = currentPrice;
+
+        for (let y = 0; y < years; y++) {
+          const annualReturn = expectedReturn + randn() * volatility;
+          price *= (1 + annualReturn);
+          if (price < 0.01) price = 0.01;
         }
+
+        endingPrices.push(price);
       }
-    });
-  }
 
-  function renderTags(stock, dcf) {
-    const tags = [];
+      endingPrices.sort((a, b) => a - b);
 
-    if (stock.beta > 1.2) tags.push("High beta");
-    if (stock.qualityScore > 0.75) tags.push("High quality profile");
-    if (stock.currentPE > stock.fairPE) tags.push("Above fair P/E estimate");
-    if (stock.currentPE < stock.fairPE) tags.push("Below fair P/E estimate");
-    if (dcf.intrinsicValue > stock.currentPrice) tags.push("DCF upside");
-    if (stock.earningsSurpriseTrend > 0) tags.push("Recent earnings beats");
+      return {
+        endingPrices,
+        p10: percentile(endingPrices, 0.10),
+        p25: percentile(endingPrices, 0.25),
+        p50: percentile(endingPrices, 0.50),
+        p75: percentile(endingPrices, 0.75),
+        p90: percentile(endingPrices, 0.90),
+        chancePositive: endingPrices.filter(v => v > currentPrice).length / endingPrices.length
+      };
+    }
 
-    document.getElementById("tagRow").innerHTML = tags.map(tag => `
-      <div class="pill">${tag}</div>
-    `).join("");
-  }
+    async function fetchJson(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`HTTP error ${res.status}`);
+      }
+      return await res.json();
+    }
 
-  function showError(message) {
-    const box = document.getElementById("errorBox");
-    box.style.display = "block";
-    box.textContent = message;
-  }
+    function getApiMessage(payload) {
+      if (!payload) return null;
+      if (typeof payload === "string") return payload;
+      return payload.Error || payload.error || payload.message || null;
+    }
 
-  function clearError() {
-    const box = document.getElementById("errorBox");
-    box.style.display = "none";
-    box.textContent = "";
-  }
+    async function safeOptionalFetch(url) {
+      try {
+        return await fetchJson(url);
+      } catch (err) {
+        console.warn("Optional endpoint failed:", err.message);
+        return null;
+      }
+    }
 
-  function showLoading() {
-    document.getElementById("loadingBox").style.display = "block";
-  }
+    async function getStockData(ticker) {
+      const symbol = ticker.toUpperCase().trim();
 
-  function hideLoading() {
-    document.getElementById("loadingBox").style.display = "none";
-  }
-
-  async function analyzeStock() {
-    clearError();
-    showLoading();
-
-    const button = document.getElementById("analyzeBtn");
-    button.disabled = true;
-
-    try {
-      const ticker = document.getElementById("ticker").value.trim();
-      const years = safeNumber(document.getElementById("years").value, 5);
-      const simulations = safeNumber(document.getElementById("simulations").value, 500);
-      const discountRate = safeNumber(document.getElementById("discountRate").value, 9);
-      const terminalGrowth = safeNumber(document.getElementById("terminalGrowth").value, 3);
-
-      if (!ticker) {
+      if (!symbol) {
         throw new Error("Enter a ticker symbol.");
       }
 
-      const stock = await getStockData(ticker);
-      const dcf = calculateDCF(stock, years, discountRate, terminalGrowth);
-      stock.dcfAnnualizedUpside = dcf.annualizedUpside;
+      if (!FMP_API_KEY || FMP_API_KEY === "PASTE_YOUR_FMP_KEY_HERE") {
+        throw new Error("Paste your Financial Modeling Prep key into FMP_API_KEY near the top of the script.");
+      }
 
-      const annualReturns = projectionAlgorithm(stock, years);
-      const series = buildProjectionSeries(stock.currentPrice, years, annualReturns);
-      const monteCarlo = simulateMonteCarlo(
-        stock.currentPrice,
-        years,
-        annualReturns.baseReturn,
-        annualReturns.estimatedVolatility,
-        simulations
+      const historicalUrl =
+        `https://financialmodelingprep.com/api/v3/historical-price-full/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
+
+      const profileUrl =
+        `https://financialmodelingprep.com/api/v3/profile/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
+
+      const [historicalJson, profileJson] = await Promise.all([
+        fetchJson(historicalUrl),
+        fetchJson(profileUrl)
+      ]);
+
+      const historicalMsg = getApiMessage(historicalJson);
+      const profileMsg = getApiMessage(profileJson);
+
+      if (historicalMsg && !historicalJson.historical) {
+        throw new Error(`Historical data error: ${historicalMsg}`);
+      }
+
+      if (profileMsg && !Array.isArray(profileJson)) {
+        throw new Error(`Profile data error: ${profileMsg}`);
+      }
+
+      if (!historicalJson.historical || !Array.isArray(historicalJson.historical) || historicalJson.historical.length < 30) {
+        throw new Error(`Could not load enough historical price data for ${symbol}.`);
+      }
+
+      if (!Array.isArray(profileJson) || !profileJson.length) {
+        throw new Error(`Could not load company profile for ${symbol}.`);
+      }
+
+      const profile = profileJson[0];
+
+      const historical = historicalJson.historical
+        .slice()
+        .reverse()
+        .map(row => ({
+          date: row.date,
+          close: safeNumber(
+            row.adjClose !== undefined && row.adjClose !== null ? row.adjClose : row.close,
+            0
+          )
+        }))
+        .filter(row => row.close > 0);
+
+      if (historical.length < 30) {
+        throw new Error(`Not enough valid price history for ${symbol}.`);
+      }
+
+      const closes = historical.map(row => row.close);
+      const latestPriceFromHistory = closes[closes.length - 1];
+      const currentPrice = safeNumber(profile.price, latestPriceFromHistory) || latestPriceFromHistory;
+
+      const tradingDaysBack = Math.min(252 * 5, closes.length - 1);
+      const startPrice = closes[closes.length - 1 - tradingDaysBack];
+      const historical5yCagr = calcCAGR(startPrice, latestPriceFromHistory, tradingDaysBack / 252);
+
+      const beta = safeNumber(profile.beta, 1);
+      const currentPE = safeNumber(profile.pe, 20);
+      const eps = safeNumber(profile.eps, 0);
+      const profitMargin = safeNumber(profile.profitMargin, 0.12);
+      const operatingMarginTTM = safeNumber(profile.operatingMargin, profitMargin);
+      const returnOnEquityTTM = safeNumber(profile.roe, 0.15);
+
+      const dividendPerShare = safeNumber(profile.lastDiv, 0);
+      const dividendYield = currentPrice > 0 ? dividendPerShare / currentPrice : 0;
+
+      const priceTargetUrl =
+        `https://financialmodelingprep.com/api/v4/price-target-consensus?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(FMP_API_KEY)}`;
+
+      const earningsSurpriseUrl =
+        `https://financialmodelingprep.com/api/v3/earnings-surprises/${encodeURIComponent(symbol)}?apikey=${encodeURIComponent(FMP_API_KEY)}`;
+
+      const [priceTargetJson, earningsJson] = await Promise.all([
+        safeOptionalFetch(priceTargetUrl),
+        safeOptionalFetch(earningsSurpriseUrl)
+      ]);
+
+      let analystTargetPrice = currentPrice;
+      let usedTargetFallback = true;
+      if (Array.isArray(priceTargetJson) && priceTargetJson.length) {
+        const targetRow = priceTargetJson[0];
+        const parsedTarget = safeNumber(
+          targetRow.targetConsensus !== undefined ? targetRow.targetConsensus :
+          (targetRow.targetPrice !== undefined ? targetRow.targetPrice : targetRow.priceTarget),
+          currentPrice
+        );
+        if (parsedTarget > 0) {
+          analystTargetPrice = parsedTarget;
+          usedTargetFallback = false;
+        }
+      }
+
+      let earningsSurpriseTrend = 0;
+      let usedEarningsFallback = true;
+      if (Array.isArray(earningsJson) && earningsJson.length) {
+        const recent = earningsJson.slice(0, 4).map(row => {
+          const actual = safeNumber(
+            row.actualEarningResult !== undefined ? row.actualEarningResult : row.actualEPS,
+            0
+          );
+          const estimate = safeNumber(
+            row.estimatedEarning !== undefined ? row.estimatedEarning : row.estimatedEPS,
+            0
+          );
+          if (!estimate) return 0;
+          return (actual - estimate) / Math.abs(estimate);
+        });
+        earningsSurpriseTrend = average(recent);
+        usedEarningsFallback = false;
+      }
+
+      const revenueCagr = clamp(
+        safeNumber(profile.revenueGrowth, 0) ||
+        safeNumber(profile.growthRevenue, 0) ||
+        Math.max(historical5yCagr * 0.55, 0.04),
+        -0.05,
+        0.25
       );
 
-      renderMetrics(stock, annualReturns, series, monteCarlo, dcf, years);
-      renderUnderlyingTable(stock);
-      renderComponentsTable(annualReturns.components);
-      renderValuationTable(stock, monteCarlo, dcf);
-      renderProjectionChart(series);
-      renderDistributionChart(monteCarlo.endingPrices);
-      renderTags(stock, dcf);
-    } catch (error) {
-      showError(error.message || "Unable to analyze this stock.");
-      console.error(error);
-    } finally {
-      hideLoading();
-      button.disabled = false;
-    }
-  }
+      const earningsGrowthTarget = clamp(
+        safeNumber(profile.earningsGrowth, 0) ||
+        safeNumber(profile.growthEPS, 0) ||
+        Math.max(historical5yCagr * 0.75, 0.05),
+        -0.05,
+        0.30
+      );
 
-  document.getElementById("analyzeBtn").addEventListener("click", analyzeStock);
-</script>
+      let fairPE = 20;
+      if (currentPE > 0) {
+        fairPE = clamp(currentPE * 0.85, 16, 32);
+      }
+
+      const qualityScore = clamp(
+        0.5 +
+        profitMargin * 0.7 +
+        operatingMarginTTM * 0.25 +
+        returnOnEquityTTM * 0.35,
+        0,
+        1
+      );
+
+      return {
+        ticker: symbol,
+        currentPrice,
+        historical5yCagr,
+        revenueCagr,
+        earningsGrowthTarget,
+        analystTargetPrice,
+        currentPE,
+        fairPE,
+        beta,
+        qualityScore,
+        eps,
+        profitMargin,
+        operatingMarginTTM,
+        returnOnEquityTTM,
+        dividendYield,
+        earningsSurpriseTrend,
+        usedTargetFallback,
+        usedEarningsFallback
+      };
+    }
+
+    function renderMetrics(stock, annualReturns, series, monteCarlo, dcf, years) {
+      const last = series[series.length - 1];
+
+      const metrics = [
+        ["Current Price", formatMoney(stock.currentPrice)],
+        ["Base Annual Return", formatPct(annualReturns.baseReturn)],
+        ["Bull Annual Return", formatPct(annualReturns.bullReturn)],
+        ["Estimated Volatility", formatPct(annualReturns.estimatedVolatility)],
+        [`Base ${years}-Year Value`, formatMoney(last.base)],
+        ["DCF Intrinsic Value", formatMoney(dcf.intrinsicValue)],
+        ["Monte Carlo Median", formatMoney(monteCarlo.p50)],
+        ["Chance Ending Higher", formatPct(monteCarlo.chancePositive)]
+      ];
+
+      document.getElementById("metrics").innerHTML = metrics.map(([label, value]) => `
+        <div class="metric">
+          <div class="metric-label">${label}</div>
+          <div class="metric-value">${value}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderUnderlyingTable(stock) {
+      const rows = [
+        ["Ticker", stock.ticker],
+        ["Current Price", formatMoney(stock.currentPrice)],
+        ["Historical 5Y CAGR", formatPct(stock.historical5yCagr)],
+        ["Revenue Growth Proxy", formatPct(stock.revenueCagr)],
+        ["Earnings Growth Proxy", formatPct(stock.earningsGrowthTarget)],
+        ["Analyst Target Price", formatMoney(stock.analystTargetPrice)],
+        ["Current P/E", safeNumber(stock.currentPE).toFixed(2)],
+        ["Fair P/E", safeNumber(stock.fairPE).toFixed(2)],
+        ["Beta", safeNumber(stock.beta).toFixed(2)],
+        ["EPS", stock.eps ? safeNumber(stock.eps).toFixed(2) : "N/A"],
+        ["Profit Margin", formatPct(stock.profitMargin || 0)],
+        ["Operating Margin", formatPct(stock.operatingMarginTTM || 0)],
+        ["ROE", formatPct(stock.returnOnEquityTTM || 0)],
+        ["Dividend Yield", formatPct(stock.dividendYield || 0)],
+        ["Quality Score", `${Math.round((stock.qualityScore || 0) * 100)} / 100`]
+      ];
+
+      document.getElementById("underlyingTable").innerHTML = rows.map(([k, v]) => `
+        <tr><th>${k}</th><td>${v}</td></tr>
+      `).join("");
+    }
+
+    function renderComponentsTable(components) {
+      const rows = [
+        ["Historical input", formatPct(components.historical)],
+        ["Revenue input", formatPct(components.revenue)],
+        ["Earnings input", formatPct(components.earnings)],
+        ["Analyst annualized", formatPct(components.analystAnnualized)],
+        ["Valuation adjustment", formatPct(components.valuation)],
+        ["Quality adjustment", formatPct(components.quality)],
+        ["DCF annualized upside", formatPct(components.dcfAnnualizedUpside)],
+        ["Risk penalty", "-" + formatPct(components.riskPenalty)]
+      ];
+
+      document.getElementById("componentsTable").innerHTML = rows.map(([k, v]) => `
+        <tr><th>${k}</th><td>${v}</td></tr>
+      `).join("");
+    }
+
+    function renderValuationTable(stock, monteCarlo, dcf) {
+      const rows = [
+        ["DCF Method", dcf.note],
+        ["DCF Base Cash Flow / Share", dcf.baseCashFlowPerShare ? dcf.baseCashFlowPerShare.toFixed(2) : "N/A"],
+        ["DCF Intrinsic Value", formatMoney(dcf.intrinsicValue)],
+        ["DCF Annualized Upside", formatPct(dcf.annualizedUpside)],
+        ["Monte Carlo P10", formatMoney(monteCarlo.p10)],
+        ["Monte Carlo P25", formatMoney(monteCarlo.p25)],
+        ["Monte Carlo Median", formatMoney(monteCarlo.p50)],
+        ["Monte Carlo P75", formatMoney(monteCarlo.p75)],
+        ["Monte Carlo P90", formatMoney(monteCarlo.p90)],
+        ["Chance Ending Above Today", formatPct(monteCarlo.chancePositive)],
+        ["Recent Earnings Surprise Trend", formatPct(stock.earningsSurpriseTrend || 0)]
+      ];
+
+      document.getElementById("valuationTable").innerHTML = rows.map(([k, v]) => `
+        <tr><th>${k}</th><td>${v}</td></tr>
+      `).join("");
+    }
+
+    function renderProjectionChart(series) {
+      const canvas = document.getElementById("projectionChart");
+      const ctx = canvas.getContext("2d");
+
+      if (projectionChart) {
+        projectionChart.destroy();
+      }
+
+      projectionChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: series.map(row => `Year ${row.year}`),
+          datasets: [
+            {
+              label: "Bear",
+              data: series.map(row => row.bear),
+              borderColor: "#dc2626",
+              backgroundColor: "rgba(220,38,38,0.12)",
+              borderWidth: 2,
+              tension: 0.25,
+              pointRadius: 2,
+              fill: false
+            },
+            {
+              label: "Base",
+              data: series.map(row => row.base),
+              borderColor: "#2563eb",
+              backgroundColor: "rgba(37,99,235,0.12)",
+              borderWidth: 2,
+              tension: 0.25,
+              pointRadius: 2,
+              fill: false
+            },
+            {
+              label: "Bull",
+              data: series.map(row => row.bull),
+              borderColor: "#16a34a",
+              backgroundColor: "rgba(22,163,74,0.12)",
+              borderWidth: 2,
+              tension: 0.25,
+              pointRadius: 2,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${formatMoney(context.parsed.y)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              ticks: {
+                callback: function(value) {
+                  return "$" + Number(value).toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderDistributionChart(endingPrices) {
+      const canvas = document.getElementById("distributionChart");
+      const ctx = canvas.getContext("2d");
+
+      if (distributionChart) {
+        distributionChart.destroy();
+      }
+
+      const hist = histogram(endingPrices, 14);
+
+      distributionChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: hist.labels,
+          datasets: [{
+            label: "Simulation Count",
+            data: hist.counts,
+            backgroundColor: "rgba(37,99,235,0.55)",
+            borderColor: "#1d4ed8",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              ticks: { display: false }
+            },
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    function renderTags(stock, dcf) {
+      const tags = [];
+
+      if (stock.beta > 1.2) tags.push("High beta");
+      if (stock.qualityScore > 0.75) tags.push("High quality profile");
+      if (stock.currentPE > stock.fairPE) tags.push("Above fair P/E estimate");
+      if (stock.currentPE < stock.fairPE) tags.push("Below fair P/E estimate");
+      if (dcf.intrinsicValue > stock.currentPrice) tags.push("DCF upside");
+      if (stock.earningsSurpriseTrend > 0) tags.push("Recent earnings beats");
+      if (stock.usedTargetFallback) tags.push("Target fallback used");
+      if (stock.usedEarningsFallback) tags.push("Earnings fallback used");
+
+      document.getElementById("tagRow").innerHTML = tags.map(tag => `
+        <div class="pill">${tag}</div>
+      `).join("");
+    }
+
+    function renderDataNotes(stock) {
+      const notes = [];
+      if (stock.usedTargetFallback) {
+        notes.push("Analyst target data was unavailable, so the model used current price as the target baseline.");
+      }
+      if (stock.usedEarningsFallback) {
+        notes.push("Earnings surprise data was unavailable, so earnings trend was set to neutral.");
+      }
+      if (!notes.length) {
+        notes.push("All primary and optional inputs loaded successfully.");
+      }
+
+      document.getElementById("dataNotes").textContent = notes.join(" ");
+    }
+
+    function showError(message) {
+      const box = document.getElementById("errorBox");
+      box.style.display = "block";
+      box.textContent = message;
+    }
+
+    function clearError() {
+      const box = document.getElementById("errorBox");
+      box.style.display = "none";
+      box.textContent = "";
+    }
+
+    function showLoading() {
+      document.getElementById("loadingBox").style.display = "block";
+    }
+
+    function hideLoading() {
+      document.getElementById("loadingBox").style.display = "none";
+    }
+
+    function showSuccess(message) {
+      const box = document.getElementById("successBox");
+      box.style.display = "block";
+      box.textContent = message;
+    }
+
+    function clearSuccess() {
+      const box = document.getElementById("successBox");
+      box.style.display = "none";
+      box.textContent = "";
+    }
+
+    async function analyzeStock() {
+      clearError();
+      clearSuccess();
+      showLoading();
+
+      const button = document.getElementById("analyzeBtn");
+      button.disabled = true;
+
+      try {
+        const ticker = document.getElementById("ticker").value.trim();
+        const years = safeNumber(document.getElementById("years").value, 5);
+        const simulations = safeNumber(document.getElementById("simulations").value, 500);
+        const discountRate = safeNumber(document.getElementById("discountRate").value, 9);
+        const terminalGrowth = safeNumber(document.getElementById("terminalGrowth").value, 3);
+
+        if (!ticker) {
+          throw new Error("Enter a ticker symbol.");
+        }
+
+        const stock = await getStockData(ticker);
+        const dcf = calculateDCF(stock, years, discountRate, terminalGrowth);
+        stock.dcfAnnualizedUpside = dcf.annualizedUpside;
+
+        const annualReturns = projectionAlgorithm(stock, years);
+        const series = buildProjectionSeries(stock.currentPrice, years, annualReturns);
+        const monteCarlo = simulateMonteCarlo(
+          stock.currentPrice,
+          years,
+          annualReturns.baseReturn,
+          annualReturns.estimatedVolatility,
+          simulations
+        );
+
+        renderMetrics(stock, annualReturns, series, monteCarlo, dcf, years);
+        renderUnderlyingTable(stock);
+        renderComponentsTable(annualReturns.components);
+        renderValuationTable(stock, monteCarlo, dcf);
+        renderProjectionChart(series);
+        renderDistributionChart(monteCarlo.endingPrices);
+        renderTags(stock, dcf);
+        renderDataNotes(stock);
+
+        showSuccess(`Loaded ${stock.ticker} successfully.`);
+      } catch (error) {
+        showError(error && error.message ? error.message : "Unable to analyze this stock.");
+        console.error(error);
+      } finally {
+        hideLoading();
+        button.disabled = false;
+      }
+    }
+
+    document.getElementById("analyzeBtn").addEventListener("click", analyzeStock);
+
+    window.addEventListener("error", function(event) {
+      const message = event && event.message ? event.message : "A script error occurred.";
+      showError(`Page error: ${message}`);
+    });
+  </script>
+</body>
+</html>
